@@ -74,6 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="p-6 flex flex-col h-full">
           <div className="pb-6 mb-6 border-b border-sidebar-border">
             <h1 className="text-2xl font-bold tracking-tight">FinancialHabit</h1>
+            <h2 className="text-2xl font-bold tracking-tight">by kiel tame</h2>
             <p className="text-sidebar-foreground text-sm mt-1">Kelola kebiasaan finansial Anda</p>
           </div>
           
