@@ -7,9 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
 
-// Adding framer-motion for animations
-<lov-add-dependency>framer-motion@latest</lov-add-dependency>
-
 const FeatureCard = ({ icon: Icon, title, description }) => {
   return (
     <Card className="glass-card border-none shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-[-5px]">
