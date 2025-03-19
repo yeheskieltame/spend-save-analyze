@@ -37,9 +37,6 @@ const Index = () => {
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
             Kelola Kebiasaan Finansial Anda
           </h1>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-            Kelola Kebiasaan Finansial Anda
-          </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Catat, pantau, dan analisis keuangan Anda dengan mudah untuk mencapai tujuan keuangan yang lebih baik.
           </p>
