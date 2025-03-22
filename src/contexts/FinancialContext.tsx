@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 export type HabitType = 'income' | 'expense' | 'savings' | 'debt';
 export type SourceType = 'current' | 'savings';
+export type DebtAction = 'pay' | 'borrow';
 
 export interface FinancialHabit {
   id: string;
@@ -12,6 +13,7 @@ export interface FinancialHabit {
   amount: number;
   date: string;
   source?: SourceType;
+  debtAction?: DebtAction;
 }
 
 interface FinancialContextType {
@@ -20,6 +22,7 @@ interface FinancialContextType {
   deleteHabit: (id: string) => void;
   filterByMonth: (month: string) => FinancialHabit[];
   filterByType: (type: HabitType) => FinancialHabit[];
+  filterByYear: (year: string) => FinancialHabit[];
   currentMonth: string;
   setCurrentMonth: (month: string) => void;
   totalIncome: number;
@@ -27,6 +30,7 @@ interface FinancialContextType {
   totalSavings: number;
   totalDebt: number;
   availableMonths: string[];
+  availableYears: string[];
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -59,8 +63,39 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...habit,
       id: crypto.randomUUID(),
     };
-    setHabits([...habits, newHabit]);
-    toast.success("Kebiasaan finansial berhasil ditambahkan!");
+    
+    // Process based on habit type and source
+    if (habit.type === 'expense' && habit.source === 'savings') {
+      // If expense is from savings, reduce savings
+      const savingsDeduction = {
+        id: crypto.randomUUID(),
+        name: `Deduction for: ${habit.name}`,
+        type: 'savings' as HabitType,
+        amount: -habit.amount, // Negative amount to reduce savings
+        date: habit.date,
+      };
+      setHabits([...habits, newHabit, savingsDeduction]);
+      toast.success("Pengeluaran dari tabungan berhasil dicatat!");
+    } 
+    // Handle debt payments and loans
+    else if (habit.type === 'debt') {
+      if (habit.debtAction === 'pay') {
+        // Payment reduces debt (negative amount)
+        const modifiedHabit = {
+          ...newHabit,
+          amount: -habit.amount
+        };
+        setHabits([...habits, modifiedHabit]);
+        toast.success("Pembayaran hutang berhasil dicatat!");
+      } else {
+        // Borrowing increases debt (positive amount)
+        setHabits([...habits, newHabit]);
+        toast.success("Pinjaman baru berhasil dicatat!");
+      }
+    } else {
+      setHabits([...habits, newHabit]);
+      toast.success("Kebiasaan finansial berhasil ditambahkan!");
+    }
   };
 
   const deleteHabit = (id: string) => {
@@ -75,6 +110,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const filterByType = (type: HabitType) => {
     return habits.filter(habit => habit.type === type);
   };
+  
+  const filterByYear = (year: string) => {
+    return habits.filter(habit => habit.date.startsWith(year));
+  };
 
   const getAvailableMonths = (): string[] => {
     const months = new Set<string>();
@@ -83,6 +122,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       months.add(month);
     });
     return Array.from(months).sort((a, b) => b.localeCompare(a)); // Sort descending
+  };
+  
+  const getAvailableYears = (): string[] => {
+    const years = new Set<string>();
+    habits.forEach(habit => {
+      const year = habit.date.substring(0, 4); // YYYY
+      years.add(year);
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a)); // Sort descending
   };
 
   const calculateTotals = (filteredHabits: FinancialHabit[]) => {
@@ -103,6 +151,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     calculateTotals(filteredHabits);
 
   const availableMonths = getAvailableMonths();
+  const availableYears = getAvailableYears();
 
   const value = {
     habits,
@@ -110,13 +159,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     deleteHabit,
     filterByMonth,
     filterByType,
+    filterByYear,
     currentMonth,
     setCurrentMonth,
     totalIncome,
     totalExpense,
     totalSavings,
     totalDebt,
-    availableMonths
+    availableMonths,
+    availableYears
   };
 
   return (

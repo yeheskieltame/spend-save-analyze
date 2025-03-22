@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { 
@@ -8,7 +9,8 @@ import {
   SearchIcon,
   CalendarIcon,
   FilterIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  DownloadIcon
 } from 'lucide-react';
 
 import { useFinancial, FinancialHabit, HabitType } from '@/contexts/FinancialContext';
@@ -17,6 +19,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type IconMapping = {
   [key in HabitType]: React.ReactNode;
@@ -37,8 +47,12 @@ const typeLabels: Record<HabitType, string> = {
 };
 
 const HabitList = () => {
-  const { habits, deleteHabit, currentMonth, setCurrentMonth, availableMonths } = useFinancial();
+  const { habits, deleteHabit, currentMonth, setCurrentMonth, availableMonths, availableYears, filterByYear } = useFinancial();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const date = new Date();
+    return `${date.getFullYear()}`;
+  });
   
   const filteredHabits = habits
     .filter(habit => habit.date.startsWith(currentMonth))
@@ -60,10 +74,145 @@ const HabitList = () => {
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
+  // Function to generate and download financial report
+  const downloadReport = () => {
+    const yearHabits = filterByYear(selectedYear);
+    
+    // Group habits by month
+    const habitsByMonth: Record<string, FinancialHabit[]> = {};
+    yearHabits.forEach(habit => {
+      const month = habit.date.substring(0, 7); // YYYY-MM
+      if (!habitsByMonth[month]) {
+        habitsByMonth[month] = [];
+      }
+      habitsByMonth[month].push(habit);
+    });
+    
+    // Calculate monthly totals
+    const monthlyTotals: Record<string, { income: number; expense: number; savings: number; debt: number }> = {};
+    Object.keys(habitsByMonth).forEach(month => {
+      monthlyTotals[month] = habitsByMonth[month].reduce(
+        (acc, habit) => {
+          if (habit.type === 'income') acc.income += habit.amount;
+          else if (habit.type === 'expense') acc.expense += habit.amount;
+          else if (habit.type === 'savings') acc.savings += habit.amount;
+          else if (habit.type === 'debt') acc.debt += habit.amount;
+          return acc;
+        },
+        { income: 0, expense: 0, savings: 0, debt: 0 }
+      );
+    });
+    
+    // Generate report content
+    let reportContent = `LAPORAN FINANSIAL TAHUN ${selectedYear}\n\n`;
+    reportContent += `Tanggal Unduh: ${format(new Date(), 'dd MMMM yyyy')}\n\n`;
+    
+    // Add yearly summary
+    const yearlyTotals = Object.values(monthlyTotals).reduce(
+      (acc, monthTotal) => {
+        acc.income += monthTotal.income;
+        acc.expense += monthTotal.expense;
+        acc.savings += monthTotal.savings;
+        acc.debt += monthTotal.debt;
+        return acc;
+      },
+      { income: 0, expense: 0, savings: 0, debt: 0 }
+    );
+    
+    reportContent += "RINGKASAN TAHUNAN\n";
+    reportContent += `Total Pemasukan: ${formatCurrency(yearlyTotals.income)}\n`;
+    reportContent += `Total Pengeluaran: ${formatCurrency(yearlyTotals.expense)}\n`;
+    reportContent += `Total Tabungan: ${formatCurrency(yearlyTotals.savings)}\n`;
+    reportContent += `Total Hutang: ${formatCurrency(yearlyTotals.debt)}\n\n`;
+    
+    // Add monthly details
+    reportContent += "DETAIL BULANAN\n";
+    Object.keys(habitsByMonth).sort().forEach(month => {
+      const monthName = format(new Date(month + '-01'), 'MMMM yyyy');
+      reportContent += `\n--- ${monthName} ---\n`;
+      
+      // Month summary
+      const monthTotal = monthlyTotals[month];
+      reportContent += `Pemasukan: ${formatCurrency(monthTotal.income)}\n`;
+      reportContent += `Pengeluaran: ${formatCurrency(monthTotal.expense)}\n`;
+      reportContent += `Tabungan: ${formatCurrency(monthTotal.savings)}\n`;
+      reportContent += `Hutang: ${formatCurrency(monthTotal.debt)}\n\n`;
+      
+      // Month transactions
+      reportContent += "Transaksi:\n";
+      habitsByMonth[month].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .forEach(habit => {
+          const formattedDate = format(new Date(habit.date), 'dd/MM/yyyy');
+          reportContent += `${formattedDate} - ${habit.name} (${typeLabels[habit.type]}): ${formatCurrency(habit.amount)}\n`;
+        });
+      
+      reportContent += "\n";
+    });
+    
+    // Create and download the file
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financial-report-${selectedYear}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast?.success(`Laporan keuangan tahun ${selectedYear} berhasil diunduh!`);
+  };
+
   return (
     <Card className="glass-card border-none shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-4 flex flex-row justify-between items-center">
         <CardTitle className="text-lg font-medium">Daftar Kebiasaan Finansial</CardTitle>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <DownloadIcon className="h-4 w-4" />
+              <span>Unduh Laporan</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Unduh Laporan Keuangan</DialogTitle>
+              <DialogDescription>
+                Pilih tahun untuk mengunduh laporan keuangan lengkap.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <Select
+                  value={selectedYear}
+                  onValueChange={setSelectedYear}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Pilih tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.length ? (
+                      availableYears.map(year => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value={selectedYear}>
+                        {selectedYear}
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={downloadReport} className="gap-2 w-full">
+                <DownloadIcon className="h-4 w-4" />
+                <span>Unduh Laporan Tahun {selectedYear}</span>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -133,7 +282,8 @@ const HabitList = () => {
                       <td className={cn(
                         "px-4 py-3 text-sm text-right font-medium",
                         habit.type === 'income' ? "text-green-600" : 
-                        habit.type === 'expense' ? "text-red-600" : "text-blue-600"
+                        habit.type === 'expense' ? "text-red-600" : 
+                        habit.type === 'savings' ? "text-blue-600" : "text-orange-600"
                       )}>
                         {formatCurrency(habit.amount)}
                       </td>

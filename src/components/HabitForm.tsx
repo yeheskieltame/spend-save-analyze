@@ -4,7 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, DollarSign, ArrowUpIcon, ArrowDownIcon, PiggyBankIcon, CreditCardIcon } from 'lucide-react';
+import { 
+  CalendarIcon, DollarSign, ArrowUpIcon, ArrowDownIcon, 
+  PiggyBankIcon, CreditCardIcon, ArrowLeftCircleIcon, 
+  ArrowRightCircleIcon 
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFinancial, HabitType } from '@/contexts/FinancialContext';
+import { useFinancial, HabitType, DebtAction } from '@/contexts/FinancialContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const formSchema = z.object({
@@ -23,6 +27,7 @@ const formSchema = z.object({
     required_error: 'Pilih tipe kebiasaan finansial',
   }),
   source: z.enum(['current', 'savings']).optional(),
+  debtAction: z.enum(['pay', 'borrow']).optional(),
   amount: z.coerce.number().positive({ message: 'Jumlah harus positif' }),
   date: z.date({
     required_error: 'Pilih tanggal',
@@ -55,7 +60,8 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
       type: values.type as HabitType,
       amount: values.amount,
       date: format(values.date, 'yyyy-MM-dd'),
-      source: values.source || 'current',
+      source: values.source,
+      debtAction: values.debtAction,
     });
     form.reset();
     
@@ -188,6 +194,40 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
                       <SelectContent>
                         <SelectItem value="current">Uang Pegangan Saat Ini</SelectItem>
                         <SelectItem value="savings">Tabungan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            {currentType === 'debt' && (
+              <FormField
+                control={form.control}
+                name="debtAction"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tindakan Hutang</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || 'borrow'}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih tindakan hutang" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="borrow">
+                          <div className="flex items-center gap-2">
+                            <ArrowRightCircleIcon className="h-4 w-4 text-orange-500" />
+                            <span>Pinjam Uang (Tambah Hutang)</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="pay">
+                          <div className="flex items-center gap-2">
+                            <ArrowLeftCircleIcon className="h-4 w-4 text-green-500" />
+                            <span>Bayar Hutang</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

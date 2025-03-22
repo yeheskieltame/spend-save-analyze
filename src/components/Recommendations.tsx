@@ -2,14 +2,15 @@
 import React from 'react';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircleIcon, CheckCircleIcon, InfoIcon, TrendingUpIcon } from 'lucide-react';
+import { AlertCircleIcon, CheckCircleIcon, InfoIcon, TrendingUpIcon, CreditCardIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Recommendations = () => {
-  const { totalIncome, totalExpense, totalSavings } = useFinancial();
+  const { totalIncome, totalExpense, totalSavings, totalDebt } = useFinancial();
   
   const expenseRatio = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 0;
   const savingsRatio = totalIncome > 0 ? (totalSavings / totalIncome) * 100 : 0;
+  const debtRatio = totalIncome > 0 ? (totalDebt / totalIncome) * 100 : 0;
   
   const renderExpenseRecommendation = () => {
     if (expenseRatio > 50) {
@@ -73,8 +74,58 @@ const Recommendations = () => {
     }
   };
   
+  const renderDebtRecommendation = () => {
+    if (!totalIncome) {
+      return {
+        icon: <InfoIcon className="h-5 w-5 text-blue-600" />,
+        title: 'Belum Ada Data Hutang',
+        description: 'Tambahkan data pemasukan dan hutang untuk mendapatkan rekomendasi.',
+        color: 'bg-blue-50 border-blue-100',
+        iconBg: 'bg-blue-100',
+        titleColor: 'text-blue-800',
+      };
+    } else if (debtRatio > 30) {
+      return {
+        icon: <AlertCircleIcon className="h-5 w-5 text-red-600" />,
+        title: 'Hutang Tinggi',
+        description: 'Hutang Anda melebihi 30% dari pendapatan. Prioritaskan pelunasan hutang!',
+        color: 'bg-red-50 border-red-100',
+        iconBg: 'bg-red-100',
+        titleColor: 'text-red-800',
+      };
+    } else if (debtRatio > 15) {
+      return {
+        icon: <InfoIcon className="h-5 w-5 text-amber-600" />,
+        title: 'Hutang Sedang',
+        description: 'Hutang Anda masih dalam batas wajar. Usahakan untuk menguranginya secara bertahap.',
+        color: 'bg-amber-50 border-amber-100',
+        iconBg: 'bg-amber-100',
+        titleColor: 'text-amber-800',
+      };
+    } else if (totalDebt > 0) {
+      return {
+        icon: <CheckCircleIcon className="h-5 w-5 text-green-600" />,
+        title: 'Hutang Terkendali',
+        description: 'Hutang Anda rendah dan terkendali. Pertahankan dan lunasi secara teratur.',
+        color: 'bg-green-50 border-green-100',
+        iconBg: 'bg-green-100',
+        titleColor: 'text-green-800',
+      };
+    } else {
+      return {
+        icon: <CheckCircleIcon className="h-5 w-5 text-green-600" />,
+        title: 'Bebas Hutang',
+        description: 'Selamat! Anda tidak memiliki hutang. Pertahankan kondisi finansial ini!',
+        color: 'bg-green-50 border-green-100',
+        iconBg: 'bg-green-100',
+        titleColor: 'text-green-800',
+      };
+    }
+  };
+  
   const expenseRec = renderExpenseRecommendation();
   const savingsRec = renderSavingsRecommendation();
+  const debtRec = renderDebtRecommendation();
   
   const renderGeneralTip = () => {
     const tips = [
@@ -86,6 +137,8 @@ const Recommendations = () => {
       "Lakukan evaluasi keuangan secara berkala setiap bulan.",
       "Gunakan aturan 50/30/20: 50% kebutuhan, 30% keinginan, 20% tabungan.",
       "Hindari utang konsumtif dan fokus pada utang produktif.",
+      "Lunasi hutang dengan bunga tertinggi terlebih dahulu.",
+      "Jangan meminjam untuk membayar hutang yang sudah ada.",
     ];
     
     return tips[Math.floor(Math.random() * tips.length)];
@@ -119,6 +172,18 @@ const Recommendations = () => {
                 <div>
                   <p className={cn("font-medium", savingsRec.titleColor)}>{savingsRec.title}</p>
                   <p className="text-sm text-muted-foreground mt-1">{savingsRec.description}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className={cn("p-4 rounded-lg border", debtRec.color)}>
+              <div className="flex items-center gap-3">
+                <div className={cn("p-2 rounded-full", debtRec.iconBg)}>
+                  {debtRec.icon}
+                </div>
+                <div>
+                  <p className={cn("font-medium", debtRec.titleColor)}>{debtRec.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{debtRec.description}</p>
                 </div>
               </div>
             </div>
