@@ -83,26 +83,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <SidebarItem 
               icon={HomeIcon} 
               label="Dashboard" 
-              to="/" 
-              active={location.pathname === '/'} 
-            />
-            <SidebarItem 
-              icon={ListTodoIcon} 
-              label="Kebiasaan" 
               to="/dashboard" 
               active={location.pathname === '/dashboard'} 
             />
             <SidebarItem 
+              icon={ListTodoIcon} 
+              label="Kebiasaan" 
+              to="/add-habit" 
+              active={location.pathname === '/add-habit'} 
+            />
+            <SidebarItem 
               icon={BarChart3Icon} 
               label="Analisis" 
-              to="/dashboard" 
-              active={false} 
+              to="/analysis" 
+              active={location.pathname === '/analysis'} 
             />
             <SidebarItem 
               icon={PiggyBankIcon} 
               label="Tabungan" 
-              to="/dashboard" 
-              active={false} 
+              to="/savings" 
+              active={location.pathname === '/savings'} 
             />
           </nav>
           

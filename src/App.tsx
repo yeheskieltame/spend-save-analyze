@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import AddHabit from "./pages/AddHabit";
 import Analysis from "./pages/Analysis";
+import Savings from "./pages/Savings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/add-habit" element={<AddHabit />} />
             <Route path="/analysis" element={<Analysis />} />
+            <Route path="/savings" element={<Savings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

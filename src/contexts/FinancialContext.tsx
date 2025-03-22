@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from "sonner";
 
-export type HabitType = 'income' | 'expense' | 'savings';
+export type HabitType = 'income' | 'expense' | 'savings' | 'debt';
+export type SourceType = 'current' | 'savings';
 
 export interface FinancialHabit {
   id: string;
@@ -10,6 +11,7 @@ export interface FinancialHabit {
   type: HabitType;
   amount: number;
   date: string;
+  source?: SourceType;
 }
 
 interface FinancialContextType {
@@ -17,11 +19,13 @@ interface FinancialContextType {
   addHabit: (habit: Omit<FinancialHabit, 'id'>) => void;
   deleteHabit: (id: string) => void;
   filterByMonth: (month: string) => FinancialHabit[];
+  filterByType: (type: HabitType) => FinancialHabit[];
   currentMonth: string;
   setCurrentMonth: (month: string) => void;
   totalIncome: number;
   totalExpense: number;
   totalSavings: number;
+  totalDebt: number;
   availableMonths: string[];
 }
 
@@ -68,6 +72,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return habits.filter(habit => habit.date.startsWith(month));
   };
 
+  const filterByType = (type: HabitType) => {
+    return habits.filter(habit => habit.type === type);
+  };
+
   const getAvailableMonths = (): string[] => {
     const months = new Set<string>();
     habits.forEach(habit => {
@@ -83,14 +91,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (habit.type === 'income') acc.income += habit.amount;
         else if (habit.type === 'expense') acc.expense += habit.amount;
         else if (habit.type === 'savings') acc.savings += habit.amount;
+        else if (habit.type === 'debt') acc.debt += habit.amount;
         return acc;
       },
-      { income: 0, expense: 0, savings: 0 }
+      { income: 0, expense: 0, savings: 0, debt: 0 }
     );
   };
 
   const filteredHabits = filterByMonth(currentMonth);
-  const { income: totalIncome, expense: totalExpense, savings: totalSavings } = 
+  const { income: totalIncome, expense: totalExpense, savings: totalSavings, debt: totalDebt } = 
     calculateTotals(filteredHabits);
 
   const availableMonths = getAvailableMonths();
@@ -100,11 +109,13 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     addHabit,
     deleteHabit,
     filterByMonth,
+    filterByType,
     currentMonth,
     setCurrentMonth,
     totalIncome,
     totalExpense,
     totalSavings,
+    totalDebt,
     availableMonths
   };
 
