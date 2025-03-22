@@ -4,9 +4,12 @@ import { useFinancial } from '@/contexts/FinancialContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircleIcon, CheckCircleIcon, InfoIcon, TrendingUpIcon, CreditCardIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { format, isAfter, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const Recommendations = () => {
-  const { totalIncome, totalExpense, totalSavings, totalDebt } = useFinancial();
+  const { totalIncome, totalExpense, totalSavings, totalDebt, unpaidDebts } = useFinancial();
   
   const expenseRatio = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 0;
   const savingsRatio = totalIncome > 0 ? (totalSavings / totalIncome) * 100 : 0;
@@ -75,6 +78,26 @@ const Recommendations = () => {
   };
   
   const renderDebtRecommendation = () => {
+    // Check for overdue debts
+    const hasOverdueDebts = unpaidDebts.some(debt => 
+      debt.debtDueDate && isAfter(new Date(), parseISO(debt.debtDueDate))
+    );
+    
+    // Calculate total remaining debt
+    const totalRemainingDebt = unpaidDebts.reduce((sum, debt) => sum + (debt.remainingAmount || 0), 0);
+    
+    if (hasOverdueDebts) {
+      return {
+        icon: <AlertCircleIcon className="h-5 w-5 text-red-600" />,
+        title: 'Hutang Jatuh Tempo',
+        description: 'Anda memiliki hutang yang sudah jatuh tempo! Segera lakukan pembayaran untuk menghindari denda atau bunga tambahan.',
+        color: 'bg-red-50 border-red-100',
+        iconBg: 'bg-red-100',
+        titleColor: 'text-red-800',
+        highPriority: true
+      };
+    }
+    
     if (!totalIncome) {
       return {
         icon: <InfoIcon className="h-5 w-5 text-blue-600" />,
@@ -83,45 +106,67 @@ const Recommendations = () => {
         color: 'bg-blue-50 border-blue-100',
         iconBg: 'bg-blue-100',
         titleColor: 'text-blue-800',
+        highPriority: false
       };
-    } else if (debtRatio > 30) {
-      return {
-        icon: <AlertCircleIcon className="h-5 w-5 text-red-600" />,
-        title: 'Hutang Tinggi',
-        description: 'Hutang Anda melebihi 30% dari pendapatan. Prioritaskan pelunasan hutang!',
-        color: 'bg-red-50 border-red-100',
-        iconBg: 'bg-red-100',
-        titleColor: 'text-red-800',
-      };
-    } else if (debtRatio > 15) {
-      return {
-        icon: <InfoIcon className="h-5 w-5 text-amber-600" />,
-        title: 'Hutang Sedang',
-        description: 'Hutang Anda masih dalam batas wajar. Usahakan untuk menguranginya secara bertahap.',
-        color: 'bg-amber-50 border-amber-100',
-        iconBg: 'bg-amber-100',
-        titleColor: 'text-amber-800',
-      };
-    } else if (totalDebt > 0) {
-      return {
-        icon: <CheckCircleIcon className="h-5 w-5 text-green-600" />,
-        title: 'Hutang Terkendali',
-        description: 'Hutang Anda rendah dan terkendali. Pertahankan dan lunasi secara teratur.',
-        color: 'bg-green-50 border-green-100',
-        iconBg: 'bg-green-100',
-        titleColor: 'text-green-800',
-      };
+    } else if (totalRemainingDebt > 0) {
+      if (debtRatio > 30) {
+        return {
+          icon: <AlertCircleIcon className="h-5 w-5 text-red-600" />,
+          title: 'Hutang Tinggi',
+          description: 'Hutang Anda melebihi 30% dari pendapatan. Prioritaskan pelunasan hutang terlebih dahulu sebelum belanja atau menabung!',
+          color: 'bg-red-50 border-red-100',
+          iconBg: 'bg-red-100',
+          titleColor: 'text-red-800',
+          highPriority: true
+        };
+      } else if (debtRatio > 15) {
+        return {
+          icon: <InfoIcon className="h-5 w-5 text-amber-600" />,
+          title: 'Hutang Sedang',
+          description: 'Hutang Anda masih dalam batas wajar. Tetap prioritaskan pelunasan secara bertahap untuk bebas dari beban keuangan.',
+          color: 'bg-amber-50 border-amber-100',
+          iconBg: 'bg-amber-100',
+          titleColor: 'text-amber-800',
+          highPriority: false
+        };
+      } else {
+        return {
+          icon: <CheckCircleIcon className="h-5 w-5 text-green-600" />,
+          title: 'Hutang Terkendali',
+          description: 'Hutang Anda rendah dan terkendali. Tetap konsisten membayar untuk segera bebas dari hutang.',
+          color: 'bg-green-50 border-green-100',
+          iconBg: 'bg-green-100',
+          titleColor: 'text-green-800',
+          highPriority: false
+        };
+      }
     } else {
       return {
         icon: <CheckCircleIcon className="h-5 w-5 text-green-600" />,
         title: 'Bebas Hutang',
-        description: 'Selamat! Anda tidak memiliki hutang. Pertahankan kondisi finansial ini!',
+        description: 'Selamat! Anda tidak memiliki hutang. Pertahankan kondisi finansial bebas hutang ini!',
         color: 'bg-green-50 border-green-100',
         iconBg: 'bg-green-100',
         titleColor: 'text-green-800',
+        highPriority: false
       };
     }
   };
+  
+  // Get upcoming debt due dates
+  const getUpcomingDueDate = () => {
+    const upcoming = unpaidDebts
+      .filter(debt => debt.debtDueDate && !isAfter(new Date(), parseISO(debt.debtDueDate)))
+      .sort((a, b) => {
+        const dateA = a.debtDueDate ? parseISO(a.debtDueDate).getTime() : Infinity;
+        const dateB = b.debtDueDate ? parseISO(b.debtDueDate).getTime() : Infinity;
+        return dateA - dateB;
+      })[0];
+      
+    return upcoming;
+  };
+  
+  const upcomingDebt = getUpcomingDueDate();
   
   const expenseRec = renderExpenseRecommendation();
   const savingsRec = renderSavingsRecommendation();
@@ -144,6 +189,13 @@ const Recommendations = () => {
     return tips[Math.floor(Math.random() * tips.length)];
   };
   
+  // Determine display order based on high priority
+  const recommendations = [
+    { type: 'debt', rec: debtRec, priority: debtRec.highPriority ? 3 : 0 },
+    { type: 'expense', rec: expenseRec, priority: 1 },
+    { type: 'savings', rec: savingsRec, priority: 0 }
+  ].sort((a, b) => b.priority - a.priority);
+  
   return (
     <Card className="glass-card border-none shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-2">
@@ -152,41 +204,60 @@ const Recommendations = () => {
       <CardContent className="space-y-4">
         {totalIncome > 0 ? (
           <>
-            <div className={cn("p-4 rounded-lg border", expenseRec.color)}>
-              <div className="flex items-center gap-3">
-                <div className={cn("p-2 rounded-full", expenseRec.iconBg)}>
-                  {expenseRec.icon}
-                </div>
-                <div>
-                  <p className={cn("font-medium", expenseRec.titleColor)}>{expenseRec.title}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{expenseRec.description}</p>
+            {recommendations.map((item, index) => (
+              <div key={index} className={cn("p-4 rounded-lg border", item.rec.color)}>
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-full", item.rec.iconBg)}>
+                    {item.rec.icon}
+                  </div>
+                  <div>
+                    <p className={cn("font-medium", item.rec.titleColor)}>{item.rec.title}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{item.rec.description}</p>
+                    
+                    {/* Add action button for debts */}
+                    {item.type === 'debt' && unpaidDebts.length > 0 && (
+                      <Link to="/debt-analysis">
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 text-xs"
+                        >
+                          Lihat Hutang
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
             
-            <div className={cn("p-4 rounded-lg border", savingsRec.color)}>
-              <div className="flex items-center gap-3">
-                <div className={cn("p-2 rounded-full", savingsRec.iconBg)}>
-                  {savingsRec.icon}
-                </div>
-                <div>
-                  <p className={cn("font-medium", savingsRec.titleColor)}>{savingsRec.title}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{savingsRec.description}</p>
+            {/* Upcoming debt due date reminder */}
+            {upcomingDebt && (
+              <div className="p-4 rounded-lg border bg-orange-50 border-orange-100">
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-100 p-2 rounded-full">
+                    <CreditCardIcon className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-orange-800">Pengingat Jatuh Tempo</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Hutang "{upcomingDebt.name}" akan jatuh tempo pada{' '}
+                      <strong>{format(parseISO(upcomingDebt.debtDueDate as string), 'dd MMMM yyyy')}</strong>.
+                      Segera siapkan dana untuk pembayaran!
+                    </p>
+                    <Link to="/debt-analysis">
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 text-xs"
+                      >
+                        Bayar Sekarang
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <div className={cn("p-4 rounded-lg border", debtRec.color)}>
-              <div className="flex items-center gap-3">
-                <div className={cn("p-2 rounded-full", debtRec.iconBg)}>
-                  {debtRec.icon}
-                </div>
-                <div>
-                  <p className={cn("font-medium", debtRec.titleColor)}>{debtRec.title}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{debtRec.description}</p>
-                </div>
-              </div>
-            </div>
+            )}
           </>
         ) : (
           <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">

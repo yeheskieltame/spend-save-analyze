@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { 
   CalendarIcon, DollarSign, ArrowUpIcon, ArrowDownIcon, 
   PiggyBankIcon, CreditCardIcon, ArrowLeftCircleIcon, 
-  ArrowRightCircleIcon 
+  ArrowRightCircleIcon, InfoIcon
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -28,10 +28,12 @@ const formSchema = z.object({
   }),
   source: z.enum(['current', 'savings']).optional(),
   debtAction: z.enum(['pay', 'borrow']).optional(),
+  relatedToDebtId: z.string().optional(),
   amount: z.coerce.number().positive({ message: 'Jumlah harus positif' }),
   date: z.date({
     required_error: 'Pilih tanggal',
   }),
+  debtDueDate: z.date().optional(),
 });
 
 interface HabitFormProps {
@@ -39,7 +41,8 @@ interface HabitFormProps {
 }
 
 const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
-  const { addHabit } = useFinancial();
+  const { addHabit, unpaidDebts } = useFinancial();
+  const [debtDueDateEnabled, setDebtDueDateEnabled] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,6 +56,14 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
 
   // Mendapatkan nilai type saat ini untuk tampilan kondisional
   const currentType = form.watch('type');
+  const currentDebtAction = form.watch('debtAction');
+  
+  // Format debts for select
+  const debtOptions = unpaidDebts.map(debt => ({
+    id: debt.id,
+    name: debt.name,
+    amount: debt.remainingAmount || 0
+  }));
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     addHabit({
@@ -62,6 +73,8 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
       date: format(values.date, 'yyyy-MM-dd'),
       source: values.source,
       debtAction: values.debtAction,
+      debtDueDate: values.debtDueDate ? format(values.debtDueDate, 'yyyy-MM-dd') : undefined,
+      relatedToDebtId: values.relatedToDebtId
     });
     form.reset();
     
@@ -100,7 +113,15 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
                   <FormLabel>Tipe</FormLabel>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        if (value !== 'debt') {
+                          form.setValue('debtAction', undefined);
+                          form.setValue('debtDueDate', undefined);
+                          form.setValue('relatedToDebtId', undefined);
+                          setDebtDueDateEnabled(false);
+                        }
+                      }}
                       defaultValue={field.value}
                       className="grid grid-cols-4 gap-4"
                     >
@@ -209,7 +230,23 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tindakan Hutang</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || 'borrow'}>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        
+                        // If switching to borrow, enable due date
+                        if (value === 'borrow') {
+                          setDebtDueDateEnabled(true);
+                        } else {
+                          setDebtDueDateEnabled(false);
+                        }
+                        
+                        // Reset related fields
+                        form.setValue('debtDueDate', undefined);
+                        form.setValue('relatedToDebtId', undefined);
+                      }} 
+                      defaultValue={field.value || 'borrow'}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih tindakan hutang" />
@@ -230,6 +267,82 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            {currentType === 'debt' && currentDebtAction === 'pay' && (
+              <FormField
+                control={form.control}
+                name="relatedToDebtId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pilih Hutang</FormLabel>
+                    <Select onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih hutang yang akan dibayar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {debtOptions.length > 0 ? (
+                          debtOptions.map(debt => (
+                            <SelectItem key={debt.id} value={debt.id}>
+                              {debt.name} - Rp {debt.amount.toLocaleString('id-ID')}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem disabled value="none">
+                            Tidak ada hutang yang belum lunas
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            {/* Debt Due Date (for borrow only) */}
+            {currentType === 'debt' && currentDebtAction === 'borrow' && debtDueDateEnabled && (
+              <FormField
+                control={form.control}
+                name="debtDueDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Tanggal Jatuh Tempo</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pilih tanggal jatuh tempo</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          disabled={(date) => date < new Date()}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

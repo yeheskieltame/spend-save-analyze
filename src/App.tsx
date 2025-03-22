@@ -1,38 +1,41 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { FinancialProvider } from "@/contexts/FinancialContext";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import AddHabit from "./pages/AddHabit";
-import Analysis from "./pages/Analysis";
-import Savings from "./pages/Savings";
-import NotFound from "./pages/NotFound";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from "sonner";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+import { FinancialProvider } from './contexts/FinancialContext';
+import Dashboard from './pages/Dashboard';
+import Index from './pages/Index';
+import Analysis from './pages/Analysis';
+import Savings from './pages/Savings';
+import AddHabit from './pages/AddHabit';
+import NotFound from './pages/NotFound';
+import DebtAnalysis from './pages/DebtAnalysis';
+
+import './App.css';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
       <FinancialProvider>
-        <Toaster />
-        <Sonner position="top-center" />
-        <BrowserRouter>
+        <Router>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/add-habit" element={<AddHabit />} />
             <Route path="/analysis" element={<Analysis />} />
             <Route path="/savings" element={<Savings />} />
+            <Route path="/add-habit" element={<AddHabit />} />
+            <Route path="/debt-analysis" element={<DebtAnalysis />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </Router>
+        <Toaster position="top-right" />
       </FinancialProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+}
 
 export default App;

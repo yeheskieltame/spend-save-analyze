@@ -1,136 +1,108 @@
 
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React from 'react';
+import { NavLink, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { 
-  HomeIcon, 
-  PiggyBankIcon, 
-  ListTodoIcon, 
-  BarChart3Icon, 
-  MenuIcon, 
-  XIcon 
-} from 'lucide-react';
+import { BarChart3Icon, HomeIcon, CreditCardIcon, Wallet2Icon, PiggyBankIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface SidebarItemProps {
-  icon: React.ElementType;
-  label: string;
-  to: string;
-  active: boolean;
-}
-
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, to, active }) => {
-  return (
-    <Link
-      to={to}
-      className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
-        active 
-          ? "bg-primary text-primary-foreground" 
-          : "text-sidebar-foreground hover:bg-sidebar-accent"
-      )}
-    >
-      <Icon className={cn(
-        "w-5 h-5 transition-transform duration-300",
-        active ? "text-primary-foreground" : "text-sidebar-foreground",
-        "group-hover:scale-110"
-      )} />
-      <span className="font-medium">{label}</span>
-    </Link>
-  );
-};
+import { useMobile } from '@/hooks/use-mobile';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
+const Layout = ({ children }: LayoutProps) => {
+  const isMobile = useMobile();
   
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-
   return (
-    <div className="min-h-screen flex">
-      {/* Mobile Sidebar Toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-50 lg:hidden"
-      >
-        {sidebarOpen ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
-      </Button>
-      
-      {/* Sidebar */}
-      <div 
-        className={cn(
-          "fixed inset-0 z-40 lg:relative transition-all duration-300 ease-in-out",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          "lg:w-64 bg-sidebar backdrop-blur-lg border-r border-sidebar-border",
-          "bg-sidebar/90 backdrop-blur-md"
-        )}
-      >
-        <div className="p-6 flex flex-col h-full">
-          <div className="pb-6 mb-6 border-b border-sidebar-border">
-            <h1 className="text-2xl font-bold tracking-tight">FinancialHabit</h1>
-            <p className="text-sidebar-foreground text-sm mt-1">Kelola kebiasaan finansial Anda</p>
-            <p className="text-sidebar-foreground text-sm mt-1">By: Kiel Tame</p>
-
-          </div>
-          
-          <nav className="space-y-1 flex-1">
-            <SidebarItem 
-              icon={HomeIcon} 
-              label="Dashboard" 
-              to="/dashboard" 
-              active={location.pathname === '/dashboard'} 
-            />
-            <SidebarItem 
-              icon={ListTodoIcon} 
-              label="Kebiasaan" 
-              to="/add-habit" 
-              active={location.pathname === '/add-habit'} 
-            />
-            <SidebarItem 
-              icon={BarChart3Icon} 
-              label="Analisis" 
-              to="/analysis" 
-              active={location.pathname === '/analysis'} 
-            />
-            <SidebarItem 
-              icon={PiggyBankIcon} 
-              label="Tabungan" 
-              to="/savings" 
-              active={location.pathname === '/savings'} 
-            />
-          </nav>
-          
-          <div className="pt-6 mt-6 border-t border-sidebar-border">
-            <div className="glass-card p-4 rounded-xl animate-float">
-              <h3 className="font-medium text-sm">Tips Keuangan</h3>
-              <p className="text-xs text-sidebar-foreground mt-2">
-                Catat pengeluaran hari ini untuk kebiasaan finansial yang lebih baik.
-              </p>
-            </div>
-          </div>
+    <div className="flex min-h-screen bg-background">
+      <aside className={cn(
+        "fixed inset-y-0 z-20 flex w-72 flex-col transition-all duration-300 ease-in-out bg-card border-r",
+        isMobile && "-translate-x-full"
+      )}>
+        <div className="p-6 pb-2 border-b">
+          <Link to="/" className="flex items-center gap-2">
+            <Wallet2Icon className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">FinanceTracker</span>
+          </Link>
         </div>
-      </div>
+        
+        <nav className="flex-1 overflow-auto py-6 px-3">
+          <div className="space-y-1">
+            <h3 className="text-xs font-semibold px-3 py-2 text-muted-foreground">
+              Menu Utama
+            </h3>
+            
+            <NavLink 
+              to="/dashboard" 
+              className={({ isActive }) => cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <HomeIcon className="h-4 w-4" />
+              Ringkasan
+            </NavLink>
+            
+            <NavLink 
+              to="/analysis" 
+              className={({ isActive }) => cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <BarChart3Icon className="h-4 w-4" />
+              Analisis
+            </NavLink>
+            
+            <NavLink 
+              to="/savings" 
+              className={({ isActive }) => cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <PiggyBankIcon className="h-4 w-4" />
+              Tabungan
+            </NavLink>
+            
+            <NavLink 
+              to="/debt-analysis" 
+              className={({ isActive }) => cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <CreditCardIcon className="h-4 w-4" />
+              Hutang
+            </NavLink>
+          </div>
+        </nav>
+        
+        <div className="p-4 border-t flex justify-center">
+          <Link to="/add-habit" className="w-full">
+            <Button className="w-full">
+              + Tambah Transaksi
+            </Button>
+          </Link>
+        </div>
+      </aside>
       
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
-          onClick={toggleSidebar}
-        />
-      )}
-      
-      {/* Main Content */}
-      <main className="flex-1 p-6 lg:p-8 pt-16 lg:pt-8 overflow-auto">
-        <div className="max-w-6xl mx-auto animate-fade-in">
+      <div className={cn(
+        "flex-1 transition-all duration-300 ease-in-out",
+        !isMobile && "ml-72"
+      )}>
+        <div className="container max-w-5xl py-6 md:py-10">
           {children}
         </div>
-      </main>
+      </div>
     </div>
   );
 };

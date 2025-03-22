@@ -5,6 +5,7 @@ import { toast } from "sonner";
 export type HabitType = 'income' | 'expense' | 'savings' | 'debt';
 export type SourceType = 'current' | 'savings';
 export type DebtAction = 'pay' | 'borrow';
+export type DebtStatus = 'unpaid' | 'paid';
 
 export interface FinancialHabit {
   id: string;
@@ -14,6 +15,10 @@ export interface FinancialHabit {
   date: string;
   source?: SourceType;
   debtAction?: DebtAction;
+  debtDueDate?: string;  // Added debt due date
+  debtStatus?: DebtStatus; // Added debt status
+  relatedToDebtId?: string; // Reference to the original debt for payments
+  remainingAmount?: number; // Remaining amount to be paid
 }
 
 interface FinancialContextType {
@@ -31,6 +36,8 @@ interface FinancialContextType {
   totalDebt: number;
   availableMonths: string[];
   availableYears: string[];
+  unpaidDebts: FinancialHabit[]; // Add unpaid debts getter
+  payDebt: (debtId: string, amount: number) => void; // Add pay debt function
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -80,16 +87,50 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Handle debt payments and loans
     else if (habit.type === 'debt') {
       if (habit.debtAction === 'pay') {
-        // Payment reduces debt (negative amount)
-        const modifiedHabit = {
-          ...newHabit,
-          amount: -habit.amount
-        };
-        setHabits([...habits, modifiedHabit]);
-        toast.success("Pembayaran hutang berhasil dicatat!");
+        // Find the debt being paid
+        if (habit.relatedToDebtId) {
+          const debtBeingPaid = habits.find(h => h.id === habit.relatedToDebtId);
+          
+          if (debtBeingPaid) {
+            // Calculate remaining amount
+            const totalPaidSoFar = habits
+              .filter(h => h.type === 'debt' && h.debtAction === 'pay' && h.relatedToDebtId === habit.relatedToDebtId)
+              .reduce((sum, h) => sum + h.amount, 0);
+            
+            const remainingBeforeThisPayment = debtBeingPaid.amount - totalPaidSoFar;
+            const newRemainingAmount = remainingBeforeThisPayment - habit.amount;
+            
+            // Create payment record with negative amount (to reduce debt)
+            const paymentRecord = {
+              ...newHabit,
+              amount: -habit.amount, // Negative to reduce debt total
+              remainingAmount: newRemainingAmount > 0 ? newRemainingAmount : 0
+            };
+            
+            // Update original debt status if fully paid
+            if (newRemainingAmount <= 0) {
+              setHabits(habits.map(h => {
+                if (h.id === habit.relatedToDebtId) {
+                  return {...h, debtStatus: 'paid' as DebtStatus};
+                }
+                return h;
+              }));
+              toast.success("Hutang berhasil dilunasi!");
+            } else {
+              toast.success("Pembayaran hutang berhasil dicatat!");
+            }
+            
+            setHabits([...habits, paymentRecord]);
+          }
+        }
       } else {
-        // Borrowing increases debt (positive amount)
-        setHabits([...habits, newHabit]);
+        // For new debt, set initial values
+        const borrowRecord = {
+          ...newHabit,
+          debtStatus: 'unpaid' as DebtStatus,
+          remainingAmount: habit.amount
+        };
+        setHabits([...habits, borrowRecord]);
         toast.success("Pinjaman baru berhasil dicatat!");
       }
     } else {
@@ -98,9 +139,96 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  // Function to pay a debt directly
+  const payDebt = (debtId: string, amount: number) => {
+    const debt = habits.find(h => h.id === debtId);
+    
+    if (!debt) {
+      toast.error("Hutang tidak ditemukan!");
+      return;
+    }
+    
+    // Calculate remaining amount
+    const totalPaidSoFar = habits
+      .filter(h => h.type === 'debt' && h.debtAction === 'pay' && h.relatedToDebtId === debtId)
+      .reduce((sum, h) => sum + h.amount, 0);
+    
+    const remainingBeforeThisPayment = debt.amount - totalPaidSoFar;
+    
+    if (remainingBeforeThisPayment <= 0) {
+      toast.info("Hutang ini sudah lunas!");
+      return;
+    }
+    
+    // Create payment record
+    const paymentRecord = {
+      id: crypto.randomUUID(),
+      name: `Pembayaran untuk: ${debt.name}`,
+      type: 'debt' as HabitType,
+      amount: -amount, // Negative to reduce debt
+      date: new Date().toISOString().split('T')[0],
+      debtAction: 'pay' as DebtAction,
+      relatedToDebtId: debtId,
+      remainingAmount: Math.max(0, remainingBeforeThisPayment - amount)
+    };
+    
+    // Update original debt status if fully paid
+    if (remainingBeforeThisPayment - amount <= 0) {
+      setHabits([
+        ...habits.map(h => {
+          if (h.id === debtId) {
+            return {...h, debtStatus: 'paid' as DebtStatus};
+          }
+          return h;
+        }),
+        paymentRecord
+      ]);
+      toast.success("Hutang berhasil dilunasi!");
+    } else {
+      setHabits([...habits, paymentRecord]);
+      toast.success("Pembayaran hutang berhasil dicatat!");
+    }
+  };
+
   const deleteHabit = (id: string) => {
-    setHabits(habits.filter(habit => habit.id !== id));
+    // Check if it's a debt with payments
+    const habit = habits.find(h => h.id === id);
+    if (habit?.type === 'debt' && habit?.debtAction === 'borrow') {
+      // Find all related payments
+      const relatedPayments = habits.filter(h => h.relatedToDebtId === id);
+      if (relatedPayments.length > 0) {
+        // Delete all related payments first
+        setHabits(habits.filter(h => h.relatedToDebtId !== id && h.id !== id));
+      } else {
+        setHabits(habits.filter(h => h.id !== id));
+      }
+    } else {
+      setHabits(habits.filter(h => h.id !== id));
+    }
     toast.success("Kebiasaan finansial berhasil dihapus!");
+  };
+
+  // Get all unpaid debts
+  const getUnpaidDebts = (): FinancialHabit[] => {
+    // Get all borrowed debts that are unpaid
+    const borrowedDebts = habits.filter(
+      h => h.type === 'debt' && h.debtAction === 'borrow' && h.debtStatus !== 'paid'
+    );
+    
+    // For each debt, calculate the remaining amount
+    return borrowedDebts.map(debt => {
+      const payments = habits.filter(
+        h => h.type === 'debt' && h.debtAction === 'pay' && h.relatedToDebtId === debt.id
+      );
+      
+      const totalPaid = payments.reduce((sum, payment) => sum + Math.abs(payment.amount), 0);
+      const remaining = debt.amount - totalPaid;
+      
+      return {
+        ...debt,
+        remainingAmount: remaining > 0 ? remaining : 0
+      };
+    }).filter(debt => (debt.remainingAmount || 0) > 0);
   };
 
   const filterByMonth = (month: string) => {
@@ -152,6 +280,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const availableMonths = getAvailableMonths();
   const availableYears = getAvailableYears();
+  const unpaidDebts = getUnpaidDebts();
 
   const value = {
     habits,
@@ -167,7 +296,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     totalSavings,
     totalDebt,
     availableMonths,
-    availableYears
+    availableYears,
+    unpaidDebts,
+    payDebt
   };
 
   return (
