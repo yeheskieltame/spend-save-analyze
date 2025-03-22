@@ -12,6 +12,7 @@ import {
   CreditCardIcon,
   DownloadIcon
 } from 'lucide-react';
+import { toast } from "sonner";
 
 import { useFinancial, FinancialHabit, HabitType } from '@/contexts/FinancialContext';
 import { Button } from '@/components/ui/button';
