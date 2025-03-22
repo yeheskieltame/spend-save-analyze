@@ -20,12 +20,6 @@ const FinancialSummary = () => {
 
   const balance = totalIncome - totalExpense - totalSavings;
   
-  const summaryData = [
-    { name: 'Pengeluaran', value: totalExpense, color: '#ef4444' },
-    { name: 'Tabungan', value: totalSavings, color: '#3b82f6' },
-    { name: 'Sisa', value: balance > 0 ? balance : 0, color: '#10b981' },
-  ].filter(item => item.value > 0);
-  
   // Format for current month name
   const monthName = format(new Date(currentMonth + '-01'), 'MMMM yyyy');
 
@@ -40,7 +34,7 @@ const FinancialSummary = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 border border-green-100">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 border border-green-100 transition-all hover:shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="bg-green-100 p-2 rounded-full">
                   <ArrowUpIcon className="h-5 w-5 text-green-600" />
@@ -52,7 +46,7 @@ const FinancialSummary = () => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between p-4 rounded-lg bg-red-50 border border-red-100">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-red-50 border border-red-100 transition-all hover:shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="bg-red-100 p-2 rounded-full">
                   <ArrowDownIcon className="h-5 w-5 text-red-600" />
@@ -64,7 +58,7 @@ const FinancialSummary = () => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50 border border-blue-100">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50 border border-blue-100 transition-all hover:shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-100 p-2 rounded-full">
                   <PiggyBankIcon className="h-5 w-5 text-blue-600" />
@@ -76,7 +70,7 @@ const FinancialSummary = () => {
               </div>
             </div>
             
-            <div className="flex items-center justify-between p-4 rounded-lg bg-emerald-50 border border-emerald-100">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-emerald-50 border border-emerald-100 transition-all hover:shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="bg-emerald-100 p-2 rounded-full">
                   <TrendingUpIcon className="h-5 w-5 text-emerald-600" />
@@ -93,61 +87,71 @@ const FinancialSummary = () => {
       
       <Card className="glass-card border-none shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Distribusi Keuangan</CardTitle>
+          <CardTitle className="text-lg font-medium">Tren Keuangan</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Persentase alokasi dana Anda
+            Status keuangan bulan ini dibandingkan target
           </p>
         </CardHeader>
-        <CardContent>
-          {summaryData.length > 0 ? (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={summaryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    animationDuration={800}
-                    animationBegin={0}
-                  >
-                    {summaryData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.color}
-                        stroke="none" 
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => formatCurrency(Number(value))}
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      border: 'none',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    }}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    align="center"
-                    iconType="circle"
-                    layout="horizontal"
-                    formatter={(value) => <span className="text-sm">{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-64 flex items-center justify-center">
-              <p className="text-muted-foreground text-center">
-                Belum ada data finansial untuk ditampilkan
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <p className="text-sm font-medium">Rasio Pengeluaran</p>
+              <p className="text-sm font-medium">
+                {totalIncome > 0 ? ((totalExpense / totalIncome) * 100).toFixed(0) : 0}%
               </p>
             </div>
-          )}
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-red-500 h-2 rounded-full transition-all duration-500"
+                style={{ 
+                  width: totalIncome > 0 
+                    ? `${Math.min(100, (totalExpense / totalIncome) * 100)}%` 
+                    : '0%'
+                }}
+              ></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Target: maksimal 50% dari pemasukan</p>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <p className="text-sm font-medium">Rasio Tabungan</p>
+              <p className="text-sm font-medium">
+                {totalIncome > 0 ? ((totalSavings / totalIncome) * 100).toFixed(0) : 0}%
+              </p>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                style={{ 
+                  width: totalIncome > 0 
+                    ? `${Math.min(100, (totalSavings / totalIncome) * 100)}%` 
+                    : '0%'
+                }}
+              ></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Target: minimal 20% dari pemasukan</p>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <p className="text-sm font-medium">Sisa Dana</p>
+              <p className="text-sm font-medium">
+                {totalIncome > 0 ? ((balance / totalIncome) * 100).toFixed(0) : 0}%
+              </p>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                style={{ 
+                  width: totalIncome > 0 
+                    ? `${Math.min(100, (balance / totalIncome) * 100)}%` 
+                    : '0%'
+                }}
+              ></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Target: minimal 30% dari pemasukan</p>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -27,7 +27,11 @@ const formSchema = z.object({
   }),
 });
 
-const HabitForm = () => {
+interface HabitFormProps {
+  onSuccessCallback?: () => void;
+}
+
+const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
   const { addHabit } = useFinancial();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -48,6 +52,10 @@ const HabitForm = () => {
       date: format(values.date, 'yyyy-MM-dd'),
     });
     form.reset();
+    
+    if (onSuccessCallback) {
+      onSuccessCallback();
+    }
   };
 
   return (

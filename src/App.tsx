@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { FinancialProvider } from "@/contexts/FinancialContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import AddHabit from "./pages/AddHabit";
+import Analysis from "./pages/Analysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +23,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/add-habit" element={<AddHabit />} />
+            <Route path="/analysis" element={<Analysis />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
