@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { 
@@ -8,7 +7,8 @@ import {
   TrashIcon, 
   SearchIcon,
   CalendarIcon,
-  FilterIcon
+  FilterIcon,
+  CreditCardIcon
 } from 'lucide-react';
 
 import { useFinancial, FinancialHabit, HabitType } from '@/contexts/FinancialContext';
@@ -25,13 +25,15 @@ type IconMapping = {
 const typeIcons: IconMapping = {
   income: <ArrowUpIcon className="w-4 h-4 text-green-500" />,
   expense: <ArrowDownIcon className="w-4 h-4 text-red-500" />,
-  savings: <PiggyBankIcon className="w-4 h-4 text-blue-500" />
+  savings: <PiggyBankIcon className="w-4 h-4 text-blue-500" />,
+  debt: <CreditCardIcon className="w-4 h-4 text-orange-500" />
 };
 
 const typeLabels: Record<HabitType, string> = {
   income: 'Pemasukan',
   expense: 'Pengeluaran',
-  savings: 'Tabungan'
+  savings: 'Tabungan',
+  debt: 'Hutang'
 };
 
 const HabitList = () => {
