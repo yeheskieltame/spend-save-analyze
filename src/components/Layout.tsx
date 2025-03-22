@@ -4,14 +4,14 @@ import { NavLink, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { BarChart3Icon, HomeIcon, CreditCardIcon, Wallet2Icon, PiggyBankIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   return (
     <div className="flex min-h-screen bg-background">
