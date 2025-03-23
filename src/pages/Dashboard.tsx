@@ -7,9 +7,12 @@ import Recommendations from '@/components/Recommendations';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, BarChart3Icon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFinancial } from '@/contexts/FinancialContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {
   const { profile } = useAuth();
+  const { loading } = useFinancial();
   
   // Get user's first name for greeting
   const firstName = profile?.full_name?.split(' ')[0] || 
@@ -44,9 +47,17 @@ const Dashboard = () => {
           </Link>
         </div>
         
-        <FinancialSummary />
-        
-        <Recommendations />
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-[200px] w-full rounded-lg" />
+            <Skeleton className="h-[300px] w-full rounded-lg" />
+          </div>
+        ) : (
+          <>
+            <FinancialSummary />
+            <Recommendations />
+          </>
+        )}
       </div>
     </Layout>
   );
