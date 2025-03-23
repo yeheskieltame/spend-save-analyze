@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -21,18 +21,25 @@ import './App.css';
 
 const queryClient = new QueryClient();
 
-function App() {
-  // Initialize theme from local storage or default to light
-  useEffect(() => {
+// Create a separate ThemeInitializer component to use the useEffect hook
+const ThemeInitializer = () => {
+  React.useEffect(() => {
     const storedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.classList.add(storedTheme);
   }, []);
+  
+  return null;
+};
 
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <AuthProvider>
           <FinancialProvider>
+            {/* Initialize theme outside of Routes */}
+            <ThemeInitializer />
+            
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard" element={<Dashboard />} />
