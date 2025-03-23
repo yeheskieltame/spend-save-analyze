@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFinancial, HabitType, DebtAction } from '@/contexts/FinancialContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 
 const formSchema = z.object({
   name: z.string().min(3, { message: 'Nama harus minimal 3 karakter' }),
@@ -42,7 +43,8 @@ interface HabitFormProps {
 
 const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
   const { addHabit, unpaidDebts } = useFinancial();
-  const [debtDueDateEnabled, setDebtDueDateEnabled] = useState(false);
+  // Always enable debt due date for borrow action
+  const [debtDueDateEnabled, setDebtDueDateEnabled] = useState(true);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -119,7 +121,10 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
                           form.setValue('debtAction', undefined);
                           form.setValue('debtDueDate', undefined);
                           form.setValue('relatedToDebtId', undefined);
-                          setDebtDueDateEnabled(false);
+                        } else {
+                          // Default to borrow action when debt type is selected
+                          form.setValue('debtAction', 'borrow');
+                          setDebtDueDateEnabled(true);
                         }
                       }}
                       defaultValue={field.value}
@@ -306,8 +311,8 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
               />
             )}
             
-            {/* Debt Due Date (for borrow only) */}
-            {currentType === 'debt' && currentDebtAction === 'borrow' && debtDueDateEnabled && (
+            {/* Debt Due Date (for borrow only) - ALWAYS visible when borrow is selected */}
+            {currentType === 'debt' && currentDebtAction === 'borrow' && (
               <FormField
                 control={form.control}
                 name="debtDueDate"

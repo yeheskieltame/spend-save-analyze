@@ -6,13 +6,23 @@ import FinancialSummary from '@/components/FinancialSummary';
 import Recommendations from '@/components/Recommendations';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, BarChart3Icon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
+  const { profile } = useAuth();
+  
+  // Get user's first name for greeting
+  const firstName = profile?.full_name?.split(' ')[0] || 
+                   profile?.username || 
+                   'Pengguna';
+
   return (
     <Layout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ringkasan Finansial</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Halo, {firstName}! 👋
+          </h1>
           <p className="text-muted-foreground mt-2">
             Gambaran keseluruhan status keuangan dan rekomendasi pribadi Anda.
           </p>

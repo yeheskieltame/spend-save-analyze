@@ -1,11 +1,23 @@
 
-import React, { useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { BarChart3Icon, HomeIcon, CreditCardIcon, Wallet2Icon, PiggyBankIcon, Menu, X } from 'lucide-react';
+import { 
+  BarChart3Icon, HomeIcon, CreditCardIcon, Wallet2Icon, 
+  PiggyBankIcon, Menu, X, Settings, LogOut, Moon, Sun, User
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,6 +26,52 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, profile, signOut, updateTheme } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+    }
+  }, [user, navigate]);
+  
+  // Apply theme from profile
+  useEffect(() => {
+    if (profile?.theme) {
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(profile.theme);
+    }
+  }, [profile?.theme]);
+  
+  const handleSignOut = () => {
+    signOut();
+  };
+  
+  const handleThemeToggle = () => {
+    const newTheme = profile?.theme === 'dark' ? 'light' : 'dark';
+    updateTheme(newTheme);
+  };
+  
+  const navigateToSettings = () => {
+    navigate('/settings');
+  };
+  
+  const getInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name.split(' ')
+        .map(part => part[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+    }
+    
+    if (profile?.username) {
+      return profile.username.substring(0, 2).toUpperCase();
+    }
+    
+    return user?.email?.substring(0, 2).toUpperCase() || 'U';
+  };
   
   const SidebarContent = () => (
     <>
@@ -27,7 +85,24 @@ const Layout = ({ children }: LayoutProps) => {
         </Link>
       </div>
       
-      <nav className="flex-1 overflow-auto py-6 px-3">
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-3 px-2">
+          <Avatar>
+            <AvatarImage src={profile?.avatar_url || ''} />
+            <AvatarFallback>{getInitials()}</AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <p className="text-sm font-medium leading-none">
+              {profile?.full_name || profile?.username || user?.email?.split('@')[0]}
+            </p>
+            <p className="text-xs text-muted-foreground truncate max-w-[140px]">
+              {user?.email}
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <nav className="flex-1 overflow-auto py-2 px-3">
         <div className="space-y-1">
           <h3 className="text-xs font-semibold px-3 py-2 text-muted-foreground">
             Menu Utama
@@ -88,6 +163,20 @@ const Layout = ({ children }: LayoutProps) => {
             <CreditCardIcon className="h-4 w-4" />
             Hutang
           </NavLink>
+          
+          <NavLink 
+            to="/settings" 
+            className={({ isActive }) => cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
+              isActive 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => isMobile && setSidebarOpen(false)}
+          >
+            <Settings className="h-4 w-4" />
+            Pengaturan
+          </NavLink>
         </div>
       </nav>
       
@@ -128,6 +217,47 @@ const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center gap-2">
               <Wallet2Icon className="h-5 w-5 text-primary" />
               <span className="font-bold">FinanceTracker</span>
+            </div>
+            
+            <div className="ml-auto flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url || ''} />
+                      <AvatarFallback>{getInitials()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">
+                        {profile?.full_name || profile?.username || user?.email?.split('@')[0]}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleThemeToggle}>
+                    {profile?.theme === 'dark' ? (
+                      <Sun className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Moon className="mr-2 h-4 w-4" />
+                    )}
+                    {profile?.theme === 'dark' ? 'Tema Terang' : 'Tema Gelap'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={navigateToSettings}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Pengaturan
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Keluar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </>
