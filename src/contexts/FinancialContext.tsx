@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +53,39 @@ export const useFinancial = () => {
   return context;
 };
 
+const mapDbRecordToHabit = (record: any): FinancialHabit => {
+  return {
+    id: record.id,
+    name: record.name,
+    type: record.type as HabitType,
+    amount: record.amount,
+    date: record.date,
+    source: record.source as SourceType | undefined,
+    debtAction: record.debt_action as DebtAction | undefined,
+    debtDueDate: record.debt_due_date,
+    debtStatus: record.debt_status as DebtStatus | undefined,
+    relatedToDebtId: record.related_to_debt_id,
+    remainingAmount: record.remaining_amount,
+    user_id: record.user_id
+  };
+};
+
+const mapHabitToDbRecord = (habit: Omit<FinancialHabit, 'id' | 'user_id'>, userId: string) => {
+  return {
+    name: habit.name,
+    type: habit.type,
+    amount: habit.amount,
+    date: habit.date,
+    source: habit.source,
+    debt_action: habit.debtAction,
+    debt_due_date: habit.debtDueDate,
+    debt_status: habit.debtStatus,
+    related_to_debt_id: habit.relatedToDebtId,
+    remaining_amount: habit.remainingAmount,
+    user_id: userId
+  };
+};
+
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [habits, setHabits] = useState<FinancialHabit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +96,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // Fetch financial habits from Supabase when user changes
   useEffect(() => {
     if (!user) {
       setHabits([]);
@@ -84,7 +115,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           throw error;
         }
         
-        setHabits(data || []);
+        const mappedHabits = (data || []).map(mapDbRecordToHabit);
+        setHabits(mappedHabits);
       } catch (error: any) {
         console.error('Error fetching financial habits:', error.message);
         toast.error('Gagal memuat data finansial');
@@ -105,31 +137,23 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       setLoading(true);
       
-      // Prepare habit with user_id
-      const newHabit = {
-        ...habit,
-        user_id: user.id,
-      };
-      
-      // Process based on habit type and source
       if (habit.type === 'expense' && habit.source === 'savings') {
-        // If expense is from savings, add expense record
+        const dbRecord = mapHabitToDbRecord(habit, user.id);
+        
         const { data: expenseData, error: expenseError } = await supabase
           .from('financial_habits')
-          .insert([newHabit])
+          .insert([dbRecord])
           .select()
           .single();
           
         if (expenseError) throw expenseError;
         
-        // Create savings deduction record
-        const savingsDeduction = {
+        const savingsDeduction = mapHabitToDbRecord({
           name: `Deduction for: ${habit.name}`,
-          type: 'savings' as HabitType,
+          type: 'savings',
           amount: -habit.amount,
-          date: habit.date,
-          user_id: user.id,
-        };
+          date: habit.date
+        }, user.id);
         
         const { error: savingsError } = await supabase
           .from('financial_habits')
@@ -137,26 +161,23 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           
         if (savingsError) throw savingsError;
         
-        // Update local state
         const { data, error } = await supabase
           .from('financial_habits')
           .select('*')
           .eq('user_id', user.id);
           
         if (error) throw error;
-        setHabits(data || []);
+        const mappedHabits = (data || []).map(mapDbRecordToHabit);
+        setHabits(mappedHabits);
         
         toast.success("Pengeluaran dari tabungan berhasil dicatat!");
       }
-      // Handle debt payments and loans
       else if (habit.type === 'debt') {
         if (habit.debtAction === 'pay') {
-          // Find the debt being paid
           if (habit.relatedToDebtId) {
             const debtBeingPaid = habits.find(h => h.id === habit.relatedToDebtId);
             
             if (debtBeingPaid) {
-              // Calculate remaining amount
               const totalPaidSoFar = habits
                 .filter(h => h.type === 'debt' && h.debtAction === 'pay' && h.relatedToDebtId === habit.relatedToDebtId)
                 .reduce((sum, h) => sum + h.amount, 0);
@@ -164,25 +185,22 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               const remainingBeforeThisPayment = debtBeingPaid.amount - totalPaidSoFar;
               const newRemainingAmount = remainingBeforeThisPayment - habit.amount;
               
-              // Create payment record with negative amount (to reduce debt)
-              const paymentRecord = {
-                ...newHabit,
-                amount: -habit.amount, // Negative to reduce debt total
+              const paymentRecord = mapHabitToDbRecord({
+                ...habit,
+                amount: -habit.amount,
                 remainingAmount: newRemainingAmount > 0 ? newRemainingAmount : 0
-              };
+              }, user.id);
               
-              // Insert payment record
               const { error: paymentError } = await supabase
                 .from('financial_habits')
                 .insert([paymentRecord]);
                 
               if (paymentError) throw paymentError;
               
-              // Update original debt status if fully paid
               if (newRemainingAmount <= 0) {
                 const { error: updateError } = await supabase
                   .from('financial_habits')
-                  .update({ debtStatus: 'paid' as DebtStatus })
+                  .update({ debt_status: 'paid' })
                   .eq('id', habit.relatedToDebtId);
                   
                 if (updateError) throw updateError;
@@ -191,58 +209,57 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 toast.success("Pembayaran hutang berhasil dicatat!");
               }
               
-              // Update local state
               const { data, error } = await supabase
                 .from('financial_habits')
                 .select('*')
                 .eq('user_id', user.id);
                 
               if (error) throw error;
-              setHabits(data || []);
+              const mappedHabits = (data || []).map(mapDbRecordToHabit);
+              setHabits(mappedHabits);
             }
           }
         } else {
-          // For new debt, set initial values
-          const borrowRecord = {
-            ...newHabit,
-            debtStatus: 'unpaid' as DebtStatus,
+          const borrowRecord = mapHabitToDbRecord({
+            ...habit,
+            debtStatus: 'unpaid',
             remainingAmount: habit.amount
-          };
+          }, user.id);
           
-          // Insert borrow record
           const { error: borrowError } = await supabase
             .from('financial_habits')
             .insert([borrowRecord]);
             
           if (borrowError) throw borrowError;
           
-          // Update local state
           const { data, error } = await supabase
             .from('financial_habits')
             .select('*')
             .eq('user_id', user.id);
             
           if (error) throw error;
-          setHabits(data || []);
+          const mappedHabits = (data || []).map(mapDbRecordToHabit);
+          setHabits(mappedHabits);
           
           toast.success("Pinjaman baru berhasil dicatat!");
         }
       } else {
-        // For simple records (income, expense from current, savings)
+        const dbRecord = mapHabitToDbRecord(habit, user.id);
+        
         const { error: insertError } = await supabase
           .from('financial_habits')
-          .insert([newHabit]);
+          .insert([dbRecord]);
           
         if (insertError) throw insertError;
         
-        // Update local state
         const { data, error } = await supabase
           .from('financial_habits')
           .select('*')
           .eq('user_id', user.id);
           
         if (error) throw error;
-        setHabits(data || []);
+        const mappedHabits = (data || []).map(mapDbRecordToHabit);
+        setHabits(mappedHabits);
         
         toast.success("Kebiasaan finansial berhasil ditambahkan!");
       }
@@ -254,7 +271,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // Function to pay a debt directly
   const payDebt = async (debtId: string, amount: number) => {
     if (!user) {
       toast.error('Anda harus login untuk membayar hutang');
@@ -270,7 +286,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
       
-      // Calculate remaining amount
       const totalPaidSoFar = habits
         .filter(h => h.type === 'debt' && h.debtAction === 'pay' && h.relatedToDebtId === debtId)
         .reduce((sum, h) => sum + h.amount, 0);
@@ -282,30 +297,28 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
       
-      // Create payment record
-      const paymentRecord = {
+      const paymentData = {
         name: `Pembayaran untuk: ${debt.name}`,
         type: 'debt' as HabitType,
-        amount: -amount, // Negative to reduce debt
+        amount: -amount,
         date: new Date().toISOString().split('T')[0],
         debtAction: 'pay' as DebtAction,
         relatedToDebtId: debtId,
-        remainingAmount: Math.max(0, remainingBeforeThisPayment - amount),
-        user_id: user.id
+        remainingAmount: Math.max(0, remainingBeforeThisPayment - amount)
       };
       
-      // Insert payment record
+      const paymentRecord = mapHabitToDbRecord(paymentData, user.id);
+      
       const { error: paymentError } = await supabase
         .from('financial_habits')
         .insert([paymentRecord]);
         
       if (paymentError) throw paymentError;
       
-      // Update original debt status if fully paid
       if (remainingBeforeThisPayment - amount <= 0) {
         const { error: updateError } = await supabase
           .from('financial_habits')
-          .update({ debtStatus: 'paid' as DebtStatus })
+          .update({ debt_status: 'paid' })
           .eq('id', debtId);
           
         if (updateError) throw updateError;
@@ -314,14 +327,14 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         toast.success("Pembayaran hutang berhasil dicatat!");
       }
       
-      // Update local state
       const { data, error } = await supabase
         .from('financial_habits')
         .select('*')
         .eq('user_id', user.id);
         
       if (error) throw error;
-      setHabits(data || []);
+      const mappedHabits = (data || []).map(mapDbRecordToHabit);
+      setHabits(mappedHabits);
       
     } catch (error: any) {
       console.error('Error paying debt:', error.message);
@@ -340,13 +353,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       setLoading(true);
       
-      // Check if it's a debt with payments
       const habit = habits.find(h => h.id === id);
       if (habit?.type === 'debt' && habit?.debtAction === 'borrow') {
-        // Find all related payments
         const relatedPayments = habits.filter(h => h.relatedToDebtId === id);
         if (relatedPayments.length > 0) {
-          // Delete all related payments first
           for (const payment of relatedPayments) {
             const { error } = await supabase
               .from('financial_habits')
@@ -358,7 +368,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
       
-      // Delete the habit
       const { error } = await supabase
         .from('financial_habits')
         .delete()
@@ -366,7 +375,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         
       if (error) throw error;
       
-      // Update local state
       setHabits(habits.filter(h => h.id !== id && h.relatedToDebtId !== id));
       
       toast.success("Kebiasaan finansial berhasil dihapus!");
@@ -378,14 +386,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  // Get all unpaid debts
   const getUnpaidDebts = (): FinancialHabit[] => {
-    // Get all borrowed debts that are unpaid
     const borrowedDebts = habits.filter(
       h => h.type === 'debt' && h.debtAction === 'borrow' && h.debtStatus !== 'paid'
     );
     
-    // For each debt, calculate the remaining amount
     return borrowedDebts.map(debt => {
       const payments = habits.filter(
         h => h.type === 'debt' && h.debtAction === 'pay' && h.relatedToDebtId === debt.id
@@ -416,19 +421,19 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const getAvailableMonths = (): string[] => {
     const months = new Set<string>();
     habits.forEach(habit => {
-      const month = habit.date.substring(0, 7); // YYYY-MM
+      const month = habit.date.substring(0, 7);
       months.add(month);
     });
-    return Array.from(months).sort((a, b) => b.localeCompare(a)); // Sort descending
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
   };
   
   const getAvailableYears = (): string[] => {
     const years = new Set<string>();
     habits.forEach(habit => {
-      const year = habit.date.substring(0, 4); // YYYY
+      const year = habit.date.substring(0, 4);
       years.add(year);
     });
-    return Array.from(years).sort((a, b) => b.localeCompare(a)); // Sort descending
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
   };
 
   const calculateTotals = (filteredHabits: FinancialHabit[]) => {
