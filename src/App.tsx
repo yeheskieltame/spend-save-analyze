@@ -39,7 +39,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false, // Disable refetch on window focus
       retry: 1, // Limit retry attempts
       staleTime: 30000, // 30 seconds
-      cacheTime: 300000, // 5 minutes
+      gcTime: 300000, // 5 minutes (renamed from cacheTime in React Query v5+)
     },
   },
 });
