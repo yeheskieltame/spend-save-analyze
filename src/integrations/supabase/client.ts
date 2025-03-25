@@ -13,5 +13,21 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     persistSession: false, // This prevents auto-login after closing the tab
     storageKey: 'financetracker-auth-session', // Custom storage key for the session
-  }
+    autoRefreshToken: true, // Enable token auto-refresh
+    detectSessionInUrl: true, // Enable session detection in URL
+    flowType: 'pkce', // Use PKCE flow for better security and performance
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'financetracker-web',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
 });

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -12,16 +12,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 const profileSchema = z.object({
   username: z.string().min(3, { message: 'Username minimal 3 karakter' }),
   full_name: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter' }),
 });
 
-const Settings = () => {
+// Memoize the component to prevent unnecessary re-renders
+const Settings = React.memo(() => {
   const { profile, updateProfile, updateTheme, loading, signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -48,15 +48,31 @@ const Settings = () => {
   };
   
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-    await updateProfile({
-      username: values.username,
-      full_name: values.full_name,
-    });
+    try {
+      await updateProfile({
+        username: values.username,
+        full_name: values.full_name,
+      });
+      toast.success('Profil berhasil diperbarui');
+    } catch (error) {
+      toast.error('Gagal memperbarui profil');
+      console.error(error);
+    }
   };
   
   const handleThemeToggle = async (checked: boolean) => {
     const newTheme = checked ? 'dark' : 'light';
-    await updateTheme(newTheme);
+    try {
+      await updateTheme(newTheme);
+    } catch (error) {
+      toast.error('Gagal mengubah tema');
+      console.error(error);
+    }
+  };
+  
+  const handleSignOut = () => {
+    signOut();
+    toast.success('Berhasil keluar');
   };
   
   return (
@@ -157,7 +173,7 @@ const Settings = () => {
               <Button 
                 variant="destructive" 
                 className="w-full" 
-                onClick={() => signOut()} 
+                onClick={handleSignOut} 
                 disabled={loading}
               >
                 Keluar
@@ -168,6 +184,6 @@ const Settings = () => {
       </div>
     </Layout>
   );
-};
+});
 
 export default Settings;
