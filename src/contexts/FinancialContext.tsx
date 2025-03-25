@@ -126,6 +126,24 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
 
     fetchHabits();
+
+    const channel = supabase
+      .channel('financial_habits_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'financial_habits',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('Real-time change:', payload);
+        
+        fetchHabits();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const addHabit = async (habit: Omit<FinancialHabit, 'id' | 'user_id'>) => {
@@ -160,15 +178,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .insert([savingsDeduction]);
           
         if (savingsError) throw savingsError;
-        
-        const { data, error } = await supabase
-          .from('financial_habits')
-          .select('*')
-          .eq('user_id', user.id);
-          
-        if (error) throw error;
-        const mappedHabits = (data || []).map(mapDbRecordToHabit);
-        setHabits(mappedHabits);
         
         toast.success("Pengeluaran dari tabungan berhasil dicatat!");
       }
@@ -208,15 +217,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               } else {
                 toast.success("Pembayaran hutang berhasil dicatat!");
               }
-              
-              const { data, error } = await supabase
-                .from('financial_habits')
-                .select('*')
-                .eq('user_id', user.id);
-                
-              if (error) throw error;
-              const mappedHabits = (data || []).map(mapDbRecordToHabit);
-              setHabits(mappedHabits);
             }
           }
         } else {
@@ -232,15 +232,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             
           if (borrowError) throw borrowError;
           
-          const { data, error } = await supabase
-            .from('financial_habits')
-            .select('*')
-            .eq('user_id', user.id);
-            
-          if (error) throw error;
-          const mappedHabits = (data || []).map(mapDbRecordToHabit);
-          setHabits(mappedHabits);
-          
           toast.success("Pinjaman baru berhasil dicatat!");
         }
       } else {
@@ -251,15 +242,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .insert([dbRecord]);
           
         if (insertError) throw insertError;
-        
-        const { data, error } = await supabase
-          .from('financial_habits')
-          .select('*')
-          .eq('user_id', user.id);
-          
-        if (error) throw error;
-        const mappedHabits = (data || []).map(mapDbRecordToHabit);
-        setHabits(mappedHabits);
         
         toast.success("Kebiasaan finansial berhasil ditambahkan!");
       }
@@ -326,16 +308,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       } else {
         toast.success("Pembayaran hutang berhasil dicatat!");
       }
-      
-      const { data, error } = await supabase
-        .from('financial_habits')
-        .select('*')
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      const mappedHabits = (data || []).map(mapDbRecordToHabit);
-      setHabits(mappedHabits);
-      
     } catch (error: any) {
       console.error('Error paying debt:', error.message);
       toast.error('Gagal membayar hutang');
@@ -374,8 +346,6 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         .eq('id', id);
         
       if (error) throw error;
-      
-      setHabits(habits.filter(h => h.id !== id && h.relatedToDebtId !== id));
       
       toast.success("Kebiasaan finansial berhasil dihapus!");
     } catch (error: any) {

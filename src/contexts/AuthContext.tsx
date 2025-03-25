@@ -177,6 +177,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
+      // Clear the user and session state immediately
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      
       navigate('/');
       toast.success("Logout berhasil!");
     } catch (error: any) {
@@ -203,7 +208,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
+      // Update the profile state immediately for real-time feedback
       setProfile(prev => prev ? { ...prev, ...data } : null);
+      
       toast.success("Profil berhasil diperbarui!");
     } catch (error: any) {
       toast.error(error.message || "Gagal memperbarui profil, silakan coba lagi");
@@ -229,6 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
+      // Update the profile state immediately for real-time feedback
       setProfile(prev => prev ? { ...prev, theme } : null);
       
       document.documentElement.classList.remove('light', 'dark');

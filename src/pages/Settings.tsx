@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { useEffect } from 'react';
 
 const profileSchema = z.object({
   username: z.string().min(3, { message: 'Username minimal 3 karakter' }),
@@ -27,10 +28,20 @@ const Settings = () => {
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: profile?.username || '',
-      full_name: profile?.full_name || '',
+      username: '',
+      full_name: '',
     },
   });
+  
+  // Update form values when profile data changes
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        username: profile.username || '',
+        full_name: profile.full_name || '',
+      });
+    }
+  }, [profile, form]);
   
   const handleBackClick = () => {
     navigate('/dashboard');
