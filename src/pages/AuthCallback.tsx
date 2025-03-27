@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +12,8 @@ const AuthCallback = () => {
       // Handle OAuth redirect
       try {
         console.log("Auth callback: Starting to handle redirect");
+        console.log("Current URL:", window.location.href);
+        
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -26,11 +27,13 @@ const AuthCallback = () => {
         if (data?.session) {
           // Successfully authenticated
           console.log("Auth callback: Session found, login successful");
+          console.log("User email:", data.session.user.email);
           toast.success("Login berhasil!");
           navigate('/dashboard');
         } else {
           // No session, redirect back to login
           console.log("Auth callback: No session found");
+          console.log("Full response data:", JSON.stringify(data));
           setError("Tidak ada sesi yang ditemukan");
           toast.error("Gagal login: Tidak ada sesi yang ditemukan");
           setTimeout(() => navigate('/auth'), 3000);
