@@ -12,6 +12,7 @@ const AuthCallback = () => {
     const handleRedirect = async () => {
       // Handle OAuth redirect
       try {
+        console.log("Auth callback: Starting to handle redirect");
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -24,10 +25,12 @@ const AuthCallback = () => {
 
         if (data?.session) {
           // Successfully authenticated
+          console.log("Auth callback: Session found, login successful");
           toast.success("Login berhasil!");
           navigate('/dashboard');
         } else {
           // No session, redirect back to login
+          console.log("Auth callback: No session found");
           setError("Tidak ada sesi yang ditemukan");
           toast.error("Gagal login: Tidak ada sesi yang ditemukan");
           setTimeout(() => navigate('/auth'), 3000);

@@ -160,9 +160,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error("Google sign in error:", error);
         throw error;
       }
+      
+      // Note: The user will be redirected to Google's auth page
+      // and then back to the redirectTo URL, so no need to navigate here
     } catch (error: any) {
+      console.error("Error signing in with Google:", error);
       toast.error(error.message || "Gagal login dengan Google, silakan coba lagi");
       setLoading(false);
     }

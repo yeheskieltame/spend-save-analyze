@@ -11,7 +11,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    persistSession: false, // This prevents auto-login after closing the tab
+    persistSession: true, // Enable session persistence
     storageKey: 'financetracker-auth-session', // Custom storage key for the session
     autoRefreshToken: true, // Enable token auto-refresh
     detectSessionInUrl: true, // Enable session detection in URL
