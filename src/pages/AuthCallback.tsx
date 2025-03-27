@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -29,19 +31,20 @@ const AuthCallback = () => {
           console.log("Auth callback: Session found, login successful");
           console.log("User email:", data.session.user.email);
           toast.success("Login berhasil!");
-          navigate('/dashboard');
+          // Use replace instead of push to avoid adding to history stack
+          navigate('/dashboard', { replace: true });
         } else {
           // No session, redirect back to login
           console.log("Auth callback: No session found");
           console.log("Full response data:", JSON.stringify(data));
           setError("Tidak ada sesi yang ditemukan");
           toast.error("Gagal login: Tidak ada sesi yang ditemukan");
-          setTimeout(() => navigate('/auth'), 3000);
+          setTimeout(() => navigate('/auth', { replace: true }), 3000);
         }
       } catch (err) {
         console.error("Unexpected error during auth:", err);
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
-        setTimeout(() => navigate('/auth'), 3000);
+        setTimeout(() => navigate('/auth', { replace: true }), 3000);
       }
     };
 

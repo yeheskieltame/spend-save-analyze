@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRightIcon, BarChart3Icon, ListTodoIcon, PiggyBankIcon } from 'lucide-react';
@@ -7,6 +6,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserGuideButton } from '@/components/UserGuide';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 const FeatureCard = ({ icon: Icon, title, description }) => {
   return (
@@ -26,18 +40,17 @@ const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Redirect to dashboard if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
   const handleGetStarted = () => {
     if (user) {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } else {
-      navigate('/auth');
+      navigate('/auth', { replace: true });
     }
   };
 
@@ -54,55 +67,74 @@ const Index = () => {
         <div className="space-y-16 pt-12">
           <motion.div 
             className="text-center space-y-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
           >
-            <span className="inline-block px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full">
+            <motion.span 
+              className="inline-block px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full"
+              variants={itemVariants}
+            >
               Cerdas • Sederhana • Efektif
-            </span>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+            </motion.span>
+            <motion.h1 
+              className="text-4xl md:text-5xl font-bold tracking-tight"
+              variants={itemVariants}
+            >
               Kelola Kebiasaan Finansial Anda
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            </motion.h1>
+            <motion.p 
+              className="text-xl text-muted-foreground max-w-3xl mx-auto"
+              variants={itemVariants}
+            >
               Catat, pantau, dan analisis keuangan Anda dengan mudah untuk mencapai tujuan keuangan yang lebih baik.
-            </p>
-            <div className="pt-4">
+            </motion.p>
+            <motion.div 
+              className="pt-4"
+              variants={itemVariants}
+            >
               <Button size="lg" className="gap-2 group" onClick={handleGetStarted}>
                 Mulai Sekarang
                 <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
-            </div>
+            </motion.div>
           </motion.div>
           
           <motion.div 
             className="grid md:grid-cols-3 gap-8"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            transition={{ staggerChildren: 0.1, delayChildren: 0.2 }}
           >
-            <FeatureCard
-              icon={ListTodoIcon}
-              title="Manajemen Kebiasaan"
-              description="Tambah, hapus, dan lihat semua kebiasaan finansial Anda dalam satu tempat yang terorganisir."
-            />
-            <FeatureCard
-              icon={BarChart3Icon}
-              title="Analisis Visual"
-              description="Lihat ringkasan dan distribusi keuangan Anda melalui grafik yang mudah dipahami."
-            />
-            <FeatureCard
-              icon={PiggyBankIcon}
-              title="Rekomendasi Cerdas"
-              description="Dapatkan saran dan tips berdasarkan pola pengeluaran dan tabungan Anda."
-            />
+            <motion.div variants={itemVariants}>
+              <FeatureCard
+                icon={ListTodoIcon}
+                title="Manajemen Kebiasaan"
+                description="Tambah, hapus, dan lihat semua kebiasaan finansial Anda dalam satu tempat yang terorganisir."
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <FeatureCard
+                icon={BarChart3Icon}
+                title="Analisis Visual"
+                description="Lihat ringkasan dan distribusi keuangan Anda melalui grafik yang mudah dipahami."
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <FeatureCard
+                icon={PiggyBankIcon}
+                title="Rekomendasi Cerdas"
+                description="Dapatkan saran dan tips berdasarkan pola pengeluaran dan tabungan Anda."
+              />
+            </motion.div>
           </motion.div>
           
           <motion.div 
             className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-3xl p-8 md:p-12"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div className="space-y-4">
