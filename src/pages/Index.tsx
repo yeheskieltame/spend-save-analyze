@@ -5,8 +5,8 @@ import { ArrowRightIcon, BarChart3Icon, ListTodoIcon, PiggyBankIcon } from 'luci
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserGuideButton } from '@/components/UserGuide';
 
 const FeatureCard = ({ icon: Icon, title, description }) => {
   return (
@@ -44,7 +44,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-5xl py-10">
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <UserGuideButton />
           <Link to="/auth">
             <Button variant="outline">Login</Button>
           </Link>
