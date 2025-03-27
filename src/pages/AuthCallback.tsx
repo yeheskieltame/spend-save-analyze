@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, enableRealtimeForTable } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -30,6 +30,18 @@ const AuthCallback = () => {
           // Successfully authenticated
           console.log("Auth callback: Session found, login successful");
           console.log("User email:", data.session.user.email);
+          
+          // Enable realtime for financial_habits table
+          const userId = data.session.user.id;
+          console.log("Enabling realtime for financial_habits");
+          
+          // We don't await this since it's not critical for navigation
+          enableRealtimeForTable("financial_habits").then(success => {
+            if (success) {
+              console.log("Successfully enabled realtime for financial_habits");
+            }
+          });
+          
           toast.success("Login berhasil!");
           // Use replace instead of push to avoid adding to history stack
           navigate('/dashboard', { replace: true });

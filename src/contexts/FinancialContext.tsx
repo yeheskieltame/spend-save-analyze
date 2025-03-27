@@ -41,6 +41,7 @@ interface FinancialContextType {
   unpaidDebts: FinancialHabit[];
   payDebt: (debtId: string, amount: number) => Promise<void>;
   loading: boolean;
+  refreshData: () => Promise<void>;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -96,55 +97,64 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  useEffect(() => {
+  const fetchHabits = async () => {
     if (!user) {
       setHabits([]);
       setLoading(false);
       return;
     }
 
-    const fetchHabits = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('financial_habits')
-          .select('*')
-          .eq('user_id', user.id);
-          
-        if (error) {
-          throw error;
-        }
+    try {
+      console.log('Fetching financial habits for user:', user.id);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('financial_habits')
+        .select('*')
+        .eq('user_id', user.id);
         
-        const mappedHabits = (data || []).map(mapDbRecordToHabit);
-        setHabits(mappedHabits);
-      } catch (error: any) {
-        console.error('Error fetching financial habits:', error.message);
-        toast.error('Gagal memuat data finansial');
-      } finally {
-        setLoading(false);
+      if (error) {
+        throw error;
       }
-    };
+      
+      console.log('Fetched habits:', data?.length || 0);
+      const mappedHabits = (data || []).map(mapDbRecordToHabit);
+      setHabits(mappedHabits);
+    } catch (error: any) {
+      console.error('Error fetching financial habits:', error.message);
+      toast.error('Gagal memuat data finansial');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchHabits();
 
-    const channel = supabase
-      .channel('financial_habits_changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'financial_habits',
-        filter: `user_id=eq.${user.id}`
-      }, (payload) => {
-        console.log('Real-time change:', payload);
-        
-        fetchHabits();
-      })
-      .subscribe();
+    if (user) {
+      const channel = supabase
+        .channel('financial_habits_changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'financial_habits',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          console.log('Real-time database change detected:', payload);
+          fetchHabits();
+        })
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+        });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
+
+  const refreshData = async () => {
+    await fetchHabits();
+  };
 
   const addHabit = async (habit: Omit<FinancialHabit, 'id' | 'user_id'>) => {
     if (!user) {
@@ -245,6 +255,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         
         toast.success("Kebiasaan finansial berhasil ditambahkan!");
       }
+      
+      await fetchHabits();
     } catch (error: any) {
       console.error('Error adding financial habit:', error.message);
       toast.error('Gagal menambahkan kebiasaan finansial');
@@ -270,7 +282,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       const totalPaidSoFar = habits
         .filter(h => h.type === 'debt' && h.debtAction === 'pay' && h.relatedToDebtId === debtId)
-        .reduce((sum, h) => sum + h.amount, 0);
+        .reduce((sum, payment) => sum + Math.abs(payment.amount), 0);
       
       const remainingBeforeThisPayment = debt.amount - totalPaidSoFar;
       
@@ -348,6 +360,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (error) throw error;
       
       toast.success("Kebiasaan finansial berhasil dihapus!");
+      
+      await fetchHabits();
     } catch (error: any) {
       console.error('Error deleting financial habit:', error.message);
       toast.error('Gagal menghapus kebiasaan finansial');
@@ -444,7 +458,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     availableYears,
     unpaidDebts,
     payDebt,
-    loading
+    loading,
+    refreshData
   };
 
   return (

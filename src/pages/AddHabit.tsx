@@ -1,16 +1,34 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import HabitForm from '@/components/HabitForm';
 import { Button } from '@/components/ui/button';
 import { ArrowLeftIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { useFinancial } from '@/contexts/FinancialContext';
 
 const AddHabit = () => {
   const navigate = useNavigate();
+  const { refreshData } = useFinancial();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleBackClick = () => {
     navigate(-1);
+  };
+
+  const handleSuccessCallback = async () => {
+    setIsSubmitting(true);
+    try {
+      // Ensure data is refreshed
+      await refreshData();
+      toast.success("Kebiasaan finansial berhasil ditambahkan!");
+      navigate('/dashboard');
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -29,7 +47,7 @@ const AddHabit = () => {
         </p>
         
         <div className="max-w-xl mx-auto">
-          <HabitForm onSuccessCallback={() => navigate('/dashboard')} />
+          <HabitForm onSuccessCallback={handleSuccessCallback} />
         </div>
       </div>
     </Layout>

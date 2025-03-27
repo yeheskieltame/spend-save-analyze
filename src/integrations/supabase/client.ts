@@ -31,3 +31,23 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     },
   },
 });
+
+// Create a function to enable realtime subscription for a table
+export const enableRealtimeForTable = async (tableName: string) => {
+  try {
+    const { data, error } = await supabase.rpc('supabase_functions.enable_realtime', {
+      table_name: tableName,
+    });
+    
+    if (error) {
+      console.error(`Error enabling realtime for ${tableName}:`, error);
+      return false;
+    }
+    
+    console.log(`Realtime enabled for ${tableName}:`, data);
+    return true;
+  } catch (err) {
+    console.error(`Failed to enable realtime for ${tableName}:`, err);
+    return false;
+  }
+};

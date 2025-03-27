@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -42,9 +41,10 @@ interface HabitFormProps {
 }
 
 const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
-  const { addHabit, unpaidDebts } = useFinancial();
+  const { addHabit, unpaidDebts, refreshData } = useFinancial();
   // Always enable debt due date for borrow action
   const [debtDueDateEnabled, setDebtDueDateEnabled] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,21 +67,32 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
     amount: debt.remainingAmount || 0
   }));
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    addHabit({
-      name: values.name,
-      type: values.type as HabitType,
-      amount: values.amount,
-      date: format(values.date, 'yyyy-MM-dd'),
-      source: values.source,
-      debtAction: values.debtAction,
-      debtDueDate: values.debtDueDate ? format(values.debtDueDate, 'yyyy-MM-dd') : undefined,
-      relatedToDebtId: values.relatedToDebtId
-    });
-    form.reset();
-    
-    if (onSuccessCallback) {
-      onSuccessCallback();
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      setIsSubmitting(true);
+      await addHabit({
+        name: values.name,
+        type: values.type as HabitType,
+        amount: values.amount,
+        date: format(values.date, 'yyyy-MM-dd'),
+        source: values.source,
+        debtAction: values.debtAction,
+        debtDueDate: values.debtDueDate ? format(values.debtDueDate, 'yyyy-MM-dd') : undefined,
+        relatedToDebtId: values.relatedToDebtId
+      });
+      
+      // Explicitly refresh data after adding
+      await refreshData();
+      
+      form.reset();
+      
+      if (onSuccessCallback) {
+        onSuccessCallback();
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -410,8 +421,15 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
               )}
             />
             
-            <Button type="submit" className="w-full">
-              Tambah Kebiasaan
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground"></span>
+                  <span>Menyimpan...</span>
+                </div>
+              ) : (
+                "Tambah Kebiasaan"
+              )}
             </Button>
           </form>
         </Form>

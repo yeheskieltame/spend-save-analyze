@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { 
   ArrowUpIcon, 
@@ -10,7 +9,8 @@ import {
   CalendarIcon,
   FilterIcon,
   CreditCardIcon,
-  DownloadIcon
+  DownloadIcon,
+  RefreshCwIcon
 } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Loading } from '@/components/ui/loading';
 import {
   Dialog,
   DialogContent,
@@ -48,12 +49,45 @@ const typeLabels: Record<HabitType, string> = {
 };
 
 const HabitList = () => {
-  const { habits, deleteHabit, currentMonth, setCurrentMonth, availableMonths, availableYears, filterByYear } = useFinancial();
+  const { 
+    habits, 
+    deleteHabit, 
+    currentMonth, 
+    setCurrentMonth, 
+    availableMonths, 
+    availableYears, 
+    filterByYear,
+    refreshData,
+    loading
+  } = useFinancial();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState(() => {
     const date = new Date();
     return `${date.getFullYear()}`;
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      await refreshData();
+    };
+    
+    fetchInitialData();
+  }, [refreshData]);
+  
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      toast.success("Data berhasil diperbarui");
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast.error("Gagal memperbarui data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   
   const filteredHabits = habits
     .filter(habit => habit.date.startsWith(currentMonth))
@@ -75,11 +109,9 @@ const HabitList = () => {
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  // Function to generate and download financial report
   const downloadReport = () => {
     const yearHabits = filterByYear(selectedYear);
     
-    // Group habits by month
     const habitsByMonth: Record<string, FinancialHabit[]> = {};
     yearHabits.forEach(habit => {
       const month = habit.date.substring(0, 7); // YYYY-MM
@@ -89,7 +121,6 @@ const HabitList = () => {
       habitsByMonth[month].push(habit);
     });
     
-    // Calculate monthly totals
     const monthlyTotals: Record<string, { income: number; expense: number; savings: number; debt: number }> = {};
     Object.keys(habitsByMonth).forEach(month => {
       monthlyTotals[month] = habitsByMonth[month].reduce(
@@ -104,11 +135,9 @@ const HabitList = () => {
       );
     });
     
-    // Generate report content
     let reportContent = `LAPORAN FINANSIAL TAHUN ${selectedYear}\n\n`;
     reportContent += `Tanggal Unduh: ${format(new Date(), 'dd MMMM yyyy')}\n\n`;
     
-    // Add yearly summary
     const yearlyTotals = Object.values(monthlyTotals).reduce(
       (acc, monthTotal) => {
         acc.income += monthTotal.income;
@@ -126,21 +155,17 @@ const HabitList = () => {
     reportContent += `Total Tabungan: ${formatCurrency(yearlyTotals.savings)}\n`;
     reportContent += `Total Hutang: ${formatCurrency(yearlyTotals.debt)}\n\n`;
     
-    // Add monthly details
     reportContent += "DETAIL BULANAN\n";
     Object.keys(habitsByMonth).sort().forEach(month => {
       const monthName = format(new Date(month + '-01'), 'MMMM yyyy');
       reportContent += `\n--- ${monthName} ---\n`;
       
-      // Month summary
       const monthTotal = monthlyTotals[month];
       reportContent += `Pemasukan: ${formatCurrency(monthTotal.income)}\n`;
       reportContent += `Pengeluaran: ${formatCurrency(monthTotal.expense)}\n`;
       reportContent += `Tabungan: ${formatCurrency(monthTotal.savings)}\n`;
       reportContent += `Hutang: ${formatCurrency(monthTotal.debt)}\n\n`;
       
-      // Month transactions
-      reportContent += "Transaksi:\n";
       habitsByMonth[month].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .forEach(habit => {
           const formattedDate = format(new Date(habit.date), 'dd/MM/yyyy');
@@ -150,7 +175,6 @@ const HabitList = () => {
       reportContent += "\n";
     });
     
-    // Create and download the file
     const blob = new Blob([reportContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -164,56 +188,74 @@ const HabitList = () => {
     toast?.success(`Laporan keuangan tahun ${selectedYear} berhasil diunduh!`);
   };
 
+  const handleDelete = async (id: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus kebiasaan ini?")) {
+      await deleteHabit(id);
+    }
+  };
+
   return (
     <Card className="glass-card border-none shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-4 flex flex-row justify-between items-center">
         <CardTitle className="text-lg font-medium">Daftar Kebiasaan Finansial</CardTitle>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <DownloadIcon className="h-4 w-4" />
-              <span>Unduh Laporan</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Unduh Laporan Keuangan</DialogTitle>
-              <DialogDescription>
-                Pilih tahun untuk mengunduh laporan keuangan lengkap.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-4 py-4">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                <Select
-                  value={selectedYear}
-                  onValueChange={setSelectedYear}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih tahun" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableYears.length ? (
-                      availableYears.map(year => (
-                        <SelectItem key={year} value={year}>
-                          {year}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value={selectedYear}>
-                        {selectedYear}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={downloadReport} className="gap-2 w-full">
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            className="gap-2"
+          >
+            <RefreshCwIcon className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            <span>Refresh</span>
+          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
                 <DownloadIcon className="h-4 w-4" />
-                <span>Unduh Laporan Tahun {selectedYear}</span>
+                <span>Unduh Laporan</span>
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Unduh Laporan Keuangan</DialogTitle>
+                <DialogDescription>
+                  Pilih tahun untuk mengunduh laporan keuangan lengkap.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-4">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <Select
+                    value={selectedYear}
+                    onValueChange={setSelectedYear}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih tahun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableYears.length ? (
+                        availableYears.map(year => (
+                          <SelectItem key={year} value={year}>
+                            {year}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value={selectedYear}>
+                          {selectedYear}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={downloadReport} className="gap-2 w-full">
+                  <DownloadIcon className="h-4 w-4" />
+                  <span>Unduh Laporan Tahun {selectedYear}</span>
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -253,67 +295,71 @@ const HabitList = () => {
           </div>
         </div>
         
-        <div className="rounded-lg border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Nama</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipe</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tanggal</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Jumlah</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {sortedHabits.length > 0 ? (
-                  sortedHabits.map((habit) => (
-                    <tr 
-                      key={habit.id} 
-                      className="bg-card transition-colors hover:bg-muted/30 animate-scale-in"
-                    >
-                      <td className="px-4 py-3 text-sm">{habit.name}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex items-center gap-1.5">
-                          {typeIcons[habit.type]}
-                          <span>{typeLabels[habit.type]}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm">{format(new Date(habit.date), 'dd MMMM yyyy')}</td>
-                      <td className={cn(
-                        "px-4 py-3 text-sm text-right font-medium",
-                        habit.type === 'income' ? "text-green-600" : 
-                        habit.type === 'expense' ? "text-red-600" : 
-                        habit.type === 'savings' ? "text-blue-600" : "text-orange-600"
-                      )}>
-                        {formatCurrency(habit.amount)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteHabit(habit.id)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                          <span className="sr-only">Hapus</span>
-                        </Button>
+        {loading ? (
+          <Loading text="Memuat data..." fullScreen />
+        ) : (
+          <div className="rounded-lg border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Nama</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipe</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tanggal</th>
+                    <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Jumlah</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {sortedHabits.length > 0 ? (
+                    sortedHabits.map((habit) => (
+                      <tr 
+                        key={habit.id} 
+                        className="bg-card transition-colors hover:bg-muted/30 animate-scale-in"
+                      >
+                        <td className="px-4 py-3 text-sm">{habit.name}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex items-center gap-1.5">
+                            {typeIcons[habit.type]}
+                            <span>{typeLabels[habit.type]}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{format(new Date(habit.date), 'dd MMMM yyyy')}</td>
+                        <td className={cn(
+                          "px-4 py-3 text-sm text-right font-medium",
+                          habit.type === 'income' ? "text-green-600" : 
+                          habit.type === 'expense' ? "text-red-600" : 
+                          habit.type === 'savings' ? "text-blue-600" : "text-orange-600"
+                        )}>
+                          {formatCurrency(habit.amount)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(habit.id)}
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                            <span className="sr-only">Hapus</span>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                        {searchQuery 
+                          ? "Tidak ada kebiasaan yang sesuai dengan pencarian" 
+                          : "Belum ada kebiasaan finansial untuk bulan ini"}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                      {searchQuery 
-                        ? "Tidak ada kebiasaan yang sesuai dengan pencarian" 
-                        : "Belum ada kebiasaan finansial untuk bulan ini"}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
