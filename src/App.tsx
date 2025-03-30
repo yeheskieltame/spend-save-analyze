@@ -46,9 +46,10 @@ const ThemeInitializer = () => {
   useEffect(() => {
     // Check if session should persist across page refreshes
     // This code keeps the session active on refresh but will end it when the tab is closed
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    const handleBeforeUnload = (e: Event) => {
       // Only store session info if page is refreshing, not if tab is closing
-      if (e.persisted || document.visibilityState === 'hidden') {
+      // We don't need to check e.persisted as that's only available in PageTransitionEvent
+      if (document.visibilityState !== 'hidden') {
         // Do nothing - the session will be maintained via localStorage
       }
     };
