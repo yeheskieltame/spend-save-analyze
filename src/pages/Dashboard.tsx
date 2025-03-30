@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import FinancialSummary from '@/components/FinancialSummary';
@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Menggunakan React.memo untuk mencegah render ulang jika props tidak berubah
+// Using React.memo to prevent unnecessary re-renders
 const ActionButtons = memo(() => (
   <div className="flex justify-between gap-4 flex-wrap">
     <Link to="/add-habit">
@@ -29,7 +29,7 @@ const ActionButtons = memo(() => (
   </div>
 ));
 
-// Gunakan memo untuk komponen loading skeleton
+// Using memo for loading skeleton
 const LoadingSkeleton = memo(() => (
   <div className="space-y-4">
     <Skeleton className="h-[200px] w-full rounded-lg" />
@@ -39,7 +39,12 @@ const LoadingSkeleton = memo(() => (
 
 const Dashboard = () => {
   const { profile } = useAuth();
-  const { loading } = useFinancial();
+  const { loading, refreshData } = useFinancial();
+  
+  // Ensure data is refreshed when the dashboard is loaded
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
   
   // Get user's first name for greeting
   const firstName = profile?.full_name?.split(' ')[0] || 

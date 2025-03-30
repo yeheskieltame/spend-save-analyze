@@ -3,15 +3,15 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FinancialHabit, HabitType, FinancialContextType } from '@/types/financial';
 import { calculateTotals } from '@/utils/financialUtils';
 import { useFinancialUtilities } from './useFinancialUtilities';
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { mapDbRecordToHabit, mapHabitToDbRecord } from '@/utils/financialUtils';
 
 export function useFinancialState(): FinancialContextType {
   const [habits, setHabits] = useState<FinancialHabit[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = useSupabaseClient();
-  const user = useUser();
+  const { user } = useAuth();
   
   const {
     currentMonth,
@@ -25,31 +25,68 @@ export function useFinancialState(): FinancialContextType {
   } = useFinancialUtilities(habits);
 
   const fetchHabits = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setHabits([]);
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
+      
+      console.log("Fetching financial habits for user:", user.id);
+      
       const { data, error } = await supabase
         .from('financial_habits')
         .select('*')
         .eq('user_id', user.id)
         .order('date', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching habits:", error.message);
+        throw error;
+      }
+      
+      console.log(`Fetched ${data.length} habits`);
       
       const mappedData = data.map(record => mapDbRecordToHabit(record));
       setHabits(mappedData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching habits:', error);
       toast.error('Failed to load financial data');
+      setHabits([]);
     } finally {
       setLoading(false);
     }
-  }, [supabase, user]);
+  }, [user]);
 
+  // Fetch habits on mount and when user changes
   useEffect(() => {
     fetchHabits();
-  }, [fetchHabits]);
+    
+    // Set up realtime subscription if user is logged in
+    if (user) {
+      const subscription = supabase
+        .channel('financial_habits_changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'financial_habits',
+            filter: `user_id=eq.${user.id}` 
+          }, 
+          () => {
+            console.log('Financial data changed, refreshing...');
+            fetchHabits();
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [fetchHabits, user]);
 
   const addHabit = useCallback(async (habit: Omit<FinancialHabit, 'id' | 'user_id'>) => {
     if (!user) {
@@ -71,11 +108,11 @@ export function useFinancialState(): FinancialContextType {
       const newHabit = mapDbRecordToHabit(data);
       setHabits(prev => [newHabit, ...prev]);
       toast.success('Financial habit added successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding habit:', error);
       toast.error('Failed to add financial habit');
     }
-  }, [supabase, user]);
+  }, [user]);
 
   const deleteHabit = useCallback(async (id: string) => {
     try {
@@ -88,11 +125,11 @@ export function useFinancialState(): FinancialContextType {
       
       setHabits(prev => prev.filter(habit => habit.id !== id));
       toast.success('Financial habit deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting habit:', error);
       toast.error('Failed to delete financial habit');
     }
-  }, [supabase]);
+  }, []);
 
   const payDebt = useCallback(async (debtId: string, amount: number) => {
     if (!user) {
@@ -154,13 +191,13 @@ export function useFinancialState(): FinancialContextType {
       // Add new payment to state
       setHabits(prev => [newPayment, ...prev]);
       toast.success('Debt payment recorded successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error paying debt:', error);
       toast.error('Failed to record debt payment');
     }
-  }, [habits, supabase, user]);
+  }, [habits, user]);
   
-  // Gunakan useMemo untuk menghitung total berdasarkan bulan saat ini
+  // Use useMemo for filtered habits and calculated totals
   const monthlyHabits = useMemo(() => filterByMonth(currentMonth), [filterByMonth, currentMonth]);
   
   const financialTotals = useMemo(() => calculateTotals(monthlyHabits), [monthlyHabits]);
@@ -170,8 +207,6 @@ export function useFinancialState(): FinancialContextType {
   const availableMonths = useMemo(() => getAvailableMonths(), [getAvailableMonths]);
   const availableYears = useMemo(() => getAvailableYears(), [getAvailableYears]);
   const unpaidDebts = useMemo(() => getUnpaidDebts(), [getUnpaidDebts]);
-
-  const refreshData = fetchHabits;
 
   return {
     habits,
@@ -191,6 +226,6 @@ export function useFinancialState(): FinancialContextType {
     unpaidDebts,
     payDebt,
     loading,
-    refreshData
+    refreshData: fetchHabits
   };
 }

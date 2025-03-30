@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+
+import React, { useState, useCallback, memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Home, BarChart2, PiggyBank, Plus, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { Menu, X, Home, BarChart2, PiggyBank, Plus, Settings, LogOut } from 'lucide-react';
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ interface NavItemProps {
   label: string;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ href, icon: Icon, label }) => {
+const NavItem = memo(({ href, icon: Icon, label }: NavItemProps) => {
   const { pathname } = useLocation();
   const isActive = pathname === href;
 
@@ -32,25 +33,28 @@ const NavItem: React.FC<NavItemProps> = ({ href, icon: Icon, label }) => {
       </Link>
     </li>
   );
-};
+});
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+const Layout = memo(({ children }: { children: React.ReactNode }) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut();
-      toast.success("Berhasil logout");
-      navigate('/');
+      // Note: We don't need to manually navigate here as the AuthContext's signOut function will handle that
     } catch (error) {
+      console.error("Error in handleSignOut:", error);
       toast.error("Gagal logout");
-      console.error(error);
     }
-  };
+  }, [signOut]);
+
+  const toggleMenu = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
 
   const navigation = [
     { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -59,10 +63,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { href: '/add-habit', icon: Plus, label: 'Tambah Habit' },
     { href: '/settings', icon: Settings, label: 'Pengaturan' },
   ];
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -78,8 +78,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <nav className="flex items-center space-x-2">
               <UserGuideButton />
               {user ? (
-                <Button variant="outline" size="sm" onClick={handleSignOut}>
-                  Logout
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSignOut}
+                  className="flex items-center gap-1"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
                 </Button>
               ) : (
                 pathname !== '/auth' && (
@@ -96,9 +102,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </header>
       <div className="flex flex-1">
         <aside className="hidden w-64 flex-col border-r bg-secondary py-10 sm:flex">
-          <Link to="/settings" className="mx-auto mb-6">
-            {user?.email}
-          </Link>
+          {user?.email && (
+            <div className="mx-auto mb-6 px-4 truncate text-center">
+              <span className="text-sm font-medium text-muted-foreground">{user.email}</span>
+            </div>
+          )}
           <ul className="space-y-0.5">
             {navigation.map((item) => (
               <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} />
@@ -109,9 +117,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         {isMobile && (
           <div className={`fixed inset-0 z-50 bg-background/80 backdrop-blur flex-col gap-4 overflow-auto px-6 py-10 text-sm shadow-lg transition-all duration-300 ${isOpen ? 'flex' : 'hidden'}`}>
             <div className="flex items-center justify-between">
-              <Link to="/settings" className="">
-                {user?.email}
-              </Link>
+              {user?.email && (
+                <span className="truncate max-w-[200px] text-sm">{user.email}</span>
+              )}
               <Button variant="ghost" size="icon" className="rounded-full" onClick={toggleMenu}>
                 <X className="h-6 w-6" />
                 <span className="sr-only">Close</span>
@@ -122,8 +130,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <NavItem key={item.href} href={item.href} icon={item.icon} label={item.label} />
               ))}
             </ul>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              Logout
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="flex items-center gap-1"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
             </Button>
           </div>
         )}
@@ -136,9 +150,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Menu</span>
                 </Button>
-                <Link to="/dashboard" className="font-semibold">
+                <span className="font-semibold">
                   {navigation.find(item => item.href === pathname)?.label || 'Dashboard'}
-                </Link>
+                </span>
               </div>
             </div>
           )}
@@ -147,6 +161,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       </div>
     </div>
   );
-};
+});
 
 export default Layout;

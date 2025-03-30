@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +28,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Fix: Define useAuth as a custom hook outside of any component
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -37,7 +36,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Fix: Make sure AuthProvider is a proper React component
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -45,7 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -61,9 +59,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    console.log("Setting up auth state change listener");
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
@@ -101,10 +100,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, fetchProfile]);
 
-  // Fix: Kept auth functions to maintain functionality
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -120,9 +118,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const signUp = async (email: string, password: string, username: string) => {
+  const signUp = useCallback(async (email: string, password: string, username: string) => {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signUp({ 
@@ -146,9 +144,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     try {
       setLoading(true);
       console.log("Starting Google sign in process");
@@ -172,18 +170,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Google sign in error:", error);
         throw error;
       }
-      
-      // Note: The user will be redirected to Google's auth page
-      // and then back to the redirectTo URL, so no need to navigate here
     } catch (error: any) {
       console.error("Error signing in with Google:", error);
       toast.error(error.message || "Gagal login dengan Google, silakan coba lagi");
       setLoading(false);
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
+      console.log("Signing out...");
       setLoading(true);
       const { error } = await supabase.auth.signOut();
       
@@ -196,16 +192,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setProfile(null);
       
-      navigate('/');
       toast.success("Logout berhasil!");
+      navigate('/');
     } catch (error: any) {
+      console.error("Error signing out:", error);
       toast.error(error.message || "Gagal logout, silakan coba lagi");
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const updateProfile = async (data: Partial<Profile>) => {
+  const updateProfile = useCallback(async (data: Partial<Profile>) => {
     try {
       if (!user) {
         throw new Error('User not authenticated');
@@ -231,9 +228,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const updateTheme = async (theme: 'light' | 'dark') => {
+  const updateTheme = useCallback(async (theme: 'light' | 'dark') => {
     try {
       if (!user) {
         throw new Error('User not authenticated');
@@ -262,9 +259,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     user,
     session,
     profile,
@@ -275,7 +273,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     updateProfile,
     updateTheme,
-  };
+  }), [
+    user, 
+    session, 
+    profile, 
+    signIn, 
+    signUp, 
+    signOut, 
+    signInWithGoogle, 
+    loading, 
+    updateProfile, 
+    updateTheme
+  ]);
 
   return (
     <AuthContext.Provider value={value}>

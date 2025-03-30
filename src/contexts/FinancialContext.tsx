@@ -1,9 +1,9 @@
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { FinancialContextType } from '@/types/financial';
 import { useFinancialState } from '@/hooks/useFinancialState';
 
-// Re-export types for backward compatibility menggunakan proper 'export type' syntax
+// Use proper 'export type' syntax for re-exported types
 export type { FinancialHabit, HabitType, SourceType, DebtAction, DebtStatus } from '@/types/financial';
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
@@ -19,8 +19,19 @@ export const useFinancial = () => {
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const financialState = useFinancialState();
   
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => financialState, [
+    financialState.habits,
+    financialState.currentMonth,
+    financialState.totalIncome,
+    financialState.totalExpense,
+    financialState.totalSavings,
+    financialState.totalDebt,
+    financialState.loading
+  ]);
+  
   return (
-    <FinancialContext.Provider value={financialState}>
+    <FinancialContext.Provider value={contextValue}>
       {children}
     </FinancialContext.Provider>
   );
