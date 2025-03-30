@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { formatDate } from '@/lib/formatDate';
 import { 
@@ -10,15 +10,15 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { PiggyBankIcon, ArrowDownIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { PiggyBankIcon } from 'lucide-react';
 
 export const SavingsList: React.FC = () => {
   const { habits, filterByMonth, currentMonth } = useFinancial();
   
-  // Filter hanya tipe tabungan
-  const savingsHabits = filterByMonth(currentMonth).filter(
-    habit => habit.type === 'savings'
+  // Filter hanya tipe tabungan - menggunakan useMemo untuk meningkatkan performa
+  const savingsHabits = useMemo(() => 
+    filterByMonth(currentMonth).filter(habit => habit.type === 'savings'), 
+    [filterByMonth, currentMonth]
   );
 
   if (savingsHabits.length === 0) {

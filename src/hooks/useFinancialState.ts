@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FinancialHabit, HabitType, FinancialContextType } from '@/types/financial';
 import { calculateTotals } from '@/utils/financialUtils';
 import { useFinancialUtilities } from './useFinancialUtilities';
@@ -51,7 +51,7 @@ export function useFinancialState(): FinancialContextType {
     fetchHabits();
   }, [fetchHabits]);
 
-  const addHabit = async (habit: Omit<FinancialHabit, 'id' | 'user_id'>) => {
+  const addHabit = useCallback(async (habit: Omit<FinancialHabit, 'id' | 'user_id'>) => {
     if (!user) {
       toast.error('You must be logged in to add habits');
       return;
@@ -75,9 +75,9 @@ export function useFinancialState(): FinancialContextType {
       console.error('Error adding habit:', error);
       toast.error('Failed to add financial habit');
     }
-  };
+  }, [supabase, user]);
 
-  const deleteHabit = async (id: string) => {
+  const deleteHabit = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('financial_habits')
@@ -92,9 +92,9 @@ export function useFinancialState(): FinancialContextType {
       console.error('Error deleting habit:', error);
       toast.error('Failed to delete financial habit');
     }
-  };
+  }, [supabase]);
 
-  const payDebt = async (debtId: string, amount: number) => {
+  const payDebt = useCallback(async (debtId: string, amount: number) => {
     if (!user) {
       toast.error('You must be logged in to pay debts');
       return;
@@ -158,16 +158,18 @@ export function useFinancialState(): FinancialContextType {
       console.error('Error paying debt:', error);
       toast.error('Failed to record debt payment');
     }
-  };
+  }, [habits, supabase, user]);
   
-  // Calculate totals based on current month
-  const monthlyHabits = filterByMonth(currentMonth);
-  const { income: totalIncome, expense: totalExpense, savings: totalSavings, debt: totalDebt } = 
-    calculateTotals(monthlyHabits);
+  // Gunakan useMemo untuk menghitung total berdasarkan bulan saat ini
+  const monthlyHabits = useMemo(() => filterByMonth(currentMonth), [filterByMonth, currentMonth]);
+  
+  const financialTotals = useMemo(() => calculateTotals(monthlyHabits), [monthlyHabits]);
+  
+  const { income: totalIncome, expense: totalExpense, savings: totalSavings, debt: totalDebt } = financialTotals;
 
-  const availableMonths = getAvailableMonths();
-  const availableYears = getAvailableYears();
-  const unpaidDebts = getUnpaidDebts();
+  const availableMonths = useMemo(() => getAvailableMonths(), [getAvailableMonths]);
+  const availableYears = useMemo(() => getAvailableYears(), [getAvailableYears]);
+  const unpaidDebts = useMemo(() => getUnpaidDebts(), [getUnpaidDebts]);
 
   const refreshData = fetchHabits;
 

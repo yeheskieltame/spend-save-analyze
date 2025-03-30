@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import React, { useMemo } from 'react';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUpIcon, ArrowDownIcon, PiggyBankIcon, TrendingUpIcon } from 'lucide-react';
@@ -18,7 +17,27 @@ const FinancialSummary = () => {
     }).format(amount);
   };
 
-  const balance = totalIncome - totalExpense - totalSavings;
+  // Menggunakan useMemo untuk kalkulasi yang sering dilakukan
+  const balance = useMemo(() => 
+    totalIncome - totalExpense - totalSavings, 
+    [totalIncome, totalExpense, totalSavings]
+  );
+  
+  // Menghitung rasio-rasio finansial dengan useMemo
+  const expenseRatio = useMemo(() => 
+    totalIncome > 0 ? ((totalExpense / totalIncome) * 100).toFixed(0) : "0",
+    [totalExpense, totalIncome]
+  );
+  
+  const savingsRatio = useMemo(() => 
+    totalIncome > 0 ? ((totalSavings / totalIncome) * 100).toFixed(0) : "0",
+    [totalSavings, totalIncome]
+  );
+  
+  const balanceRatio = useMemo(() => 
+    totalIncome > 0 ? ((balance / totalIncome) * 100).toFixed(0) : "0",
+    [balance, totalIncome]
+  );
   
   // Format for current month name
   const monthName = format(new Date(currentMonth + '-01'), 'MMMM yyyy');
@@ -96,9 +115,7 @@ const FinancialSummary = () => {
           <div className="space-y-2">
             <div className="flex justify-between">
               <p className="text-sm font-medium">Rasio Pengeluaran</p>
-              <p className="text-sm font-medium">
-                {totalIncome > 0 ? ((totalExpense / totalIncome) * 100).toFixed(0) : 0}%
-              </p>
+              <p className="text-sm font-medium">{expenseRatio}%</p>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 
@@ -116,9 +133,7 @@ const FinancialSummary = () => {
           <div className="space-y-2">
             <div className="flex justify-between">
               <p className="text-sm font-medium">Rasio Tabungan</p>
-              <p className="text-sm font-medium">
-                {totalIncome > 0 ? ((totalSavings / totalIncome) * 100).toFixed(0) : 0}%
-              </p>
+              <p className="text-sm font-medium">{savingsRatio}%</p>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 
@@ -136,9 +151,7 @@ const FinancialSummary = () => {
           <div className="space-y-2">
             <div className="flex justify-between">
               <p className="text-sm font-medium">Sisa Dana</p>
-              <p className="text-sm font-medium">
-                {totalIncome > 0 ? ((balance / totalIncome) * 100).toFixed(0) : 0}%
-              </p>
+              <p className="text-sm font-medium">{balanceRatio}%</p>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 

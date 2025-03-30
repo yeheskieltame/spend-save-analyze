@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Label } from 'recharts';
+import React, { useMemo } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Label } from 'recharts';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -17,20 +17,26 @@ const FinancialDistribution = () => {
     }).format(amount);
   };
 
-  const balance = totalIncome - totalExpense - totalSavings;
+  // Menggunakan useMemo untuk kalkulasi yang sama
+  const balance = useMemo(() => totalIncome - totalExpense - totalSavings, [totalIncome, totalExpense, totalSavings]);
   
-  const summaryData = [
-    { name: 'Pengeluaran', value: totalExpense, color: '#ef4444' },
-    { name: 'Tabungan', value: totalSavings, color: '#3b82f6' },
-    { name: 'Sisa', value: balance > 0 ? balance : 0, color: '#10b981' },
-  ].filter(item => item.value > 0);
+  const summaryData = useMemo(() => {
+    return [
+      { name: 'Pengeluaran', value: totalExpense, color: '#ef4444' },
+      { name: 'Tabungan', value: totalSavings, color: '#3b82f6' },
+      { name: 'Sisa', value: balance > 0 ? balance : 0, color: '#10b981' },
+    ].filter(item => item.value > 0);
+  }, [totalExpense, totalSavings, balance]);
   
   // Calculate percentages
-  const total = summaryData.reduce((acc, item) => acc + item.value, 0);
-  const dataWithPercentages = summaryData.map(item => ({
-    ...item,
-    percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : "0",
-  }));
+  const total = useMemo(() => summaryData.reduce((acc, item) => acc + item.value, 0), [summaryData]);
+  
+  const dataWithPercentages = useMemo(() => {
+    return summaryData.map(item => ({
+      ...item,
+      percentage: total > 0 ? ((item.value / total) * 100).toFixed(1) : "0",
+    }));
+  }, [summaryData, total]);
   
   // Format for current month name
   const monthName = format(new Date(currentMonth + '-01'), 'MMMM yyyy');

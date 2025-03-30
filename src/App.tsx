@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -7,11 +8,13 @@ import { AuthProvider } from './contexts/AuthContext';
 import { FinancialProvider } from './contexts/FinancialContext';
 import './App.css';
 
-// Use React.lazy for code splitting with better loading patterns
+// Preload frequently used components
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Index = lazy(() => import('./pages/Index'));
-const Analysis = lazy(() => import('./pages/Analysis'));
-const Savings = lazy(() => import('./pages/Savings'));
+
+// Lazy load less frequently used components
+const Analysis = lazy(() => import(/* webpackPrefetch: true */ './pages/Analysis'));
+const Savings = lazy(() => import(/* webpackPrefetch: true */ './pages/Savings'));
 const AddHabit = lazy(() => import('./pages/AddHabit'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const DebtAnalysis = lazy(() => import('./pages/DebtAnalysis'));
@@ -35,8 +38,8 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 60000, // 1 minute (increased from 30 seconds)
-      gcTime: 300000, // 5 minutes
+      staleTime: 300000, // 5 minutes (increased from 1 minute)
+      gcTime: 600000, // 10 minutes (increased from 5 minutes)
     },
   },
 });

@@ -1,6 +1,5 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState, useMemo } from 'react';
 import { useFinancial } from '@/contexts/FinancialContext';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector, Legend, Tooltip } from 'recharts';
 
@@ -8,24 +7,29 @@ export const SavingsDistribution: React.FC = () => {
   const { habits, filterByMonth, currentMonth } = useFinancial();
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Mendapatkan data tabungan dan mengelompokkan berdasarkan nama
-  const savingsData = filterByMonth(currentMonth)
-    .filter(habit => habit.type === 'savings')
-    .reduce((acc, habit) => {
-      const existing = acc.find(item => item.name === habit.name);
-      if (existing) {
-        existing.value += habit.amount;
-      } else {
-        acc.push({
-          name: habit.name,
-          value: habit.amount
-        });
-      }
-      return acc;
-    }, [] as { name: string; value: number }[]);
+  // Mendapatkan data tabungan dan mengelompokkan berdasarkan nama dengan useMemo
+  const savingsData = useMemo(() => {
+    return filterByMonth(currentMonth)
+      .filter(habit => habit.type === 'savings')
+      .reduce((acc, habit) => {
+        const existing = acc.find(item => item.name === habit.name);
+        if (existing) {
+          existing.value += habit.amount;
+        } else {
+          acc.push({
+            name: habit.name,
+            value: habit.amount
+          });
+        }
+        return acc;
+      }, [] as { name: string; value: number }[]);
+  }, [filterByMonth, currentMonth]);
 
-  // Menghitung total untuk persentase
-  const total = savingsData.reduce((sum, item) => sum + item.value, 0);
+  // Menghitung total untuk persentase menggunakan useMemo
+  const total = useMemo(() => 
+    savingsData.reduce((sum, item) => sum + item.value, 0),
+    [savingsData]
+  );
 
   // Jika tidak ada data, tampilkan pesan
   if (savingsData.length === 0) {
@@ -40,7 +44,7 @@ export const SavingsDistribution: React.FC = () => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FCBAD3', '#FB8D62'];
 
   // Fungsi untuk menampilkan label persentase
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
     const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
