@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, enableRealtimeForTable } from '@/integrations/supabase/client';
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loading } from "@/components/ui/loading";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -78,11 +78,11 @@ const AuthCallback = () => {
             <p className="mt-4 text-sm">Mengarahkan ke halaman login dalam beberapa detik...</p>
           </>
         ) : (
-          <>
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <h2 className="text-lg font-medium">Mengautentikasi...</h2>
-            <p className="text-muted-foreground">Mohon tunggu sebentar</p>
-          </>
+          <Loading 
+            size="lg" 
+            text="Mengautentikasi... Mohon tunggu sebentar" 
+            fullScreen={true} 
+          />
         )}
       </div>
     </div>
