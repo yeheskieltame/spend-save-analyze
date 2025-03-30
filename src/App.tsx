@@ -1,12 +1,11 @@
-
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import { AuthProvider } from './contexts/AuthContext';
 import { FinancialProvider } from './contexts/FinancialContext';
 import './App.css';
+import { AuthProviderWrapper } from './components/auth/AuthProviderWrapper';
 
 // Preload frequently used components
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -79,7 +78,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <ThemeInitializer />
-        <AuthProvider>
+        <AuthProviderWrapper>
           <FinancialProvider>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
@@ -97,7 +96,7 @@ function App() {
             </Suspense>
             <Toaster position="top-right" />
           </FinancialProvider>
-        </AuthProvider>
+        </AuthProviderWrapper>
       </Router>
     </QueryClientProvider>
   );
