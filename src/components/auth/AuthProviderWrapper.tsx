@@ -5,9 +5,9 @@ import { AuthProvider } from '@/contexts/AuthContext';
 
 // This wrapper component ensures that AuthProvider gets the proper router context
 export const AuthProviderWrapper = memo(({ children }: { children: React.ReactNode }) => {
-  const location = useLocation();
+  // This hook ensures the navigate hook within AuthProvider has access to the router context
+  useLocation();
   
-  // This ensures the navigate hook within AuthProvider has access to the router context
   return (
     <AuthProvider>
       {children}
