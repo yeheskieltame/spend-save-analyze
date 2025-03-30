@@ -42,7 +42,6 @@ interface HabitFormProps {
 
 const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
   const { addHabit, unpaidDebts, refreshData } = useFinancial();
-  // Always enable debt due date for borrow action
   const [debtDueDateEnabled, setDebtDueDateEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -56,11 +55,9 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
     },
   });
 
-  // Mendapatkan nilai type saat ini untuk tampilan kondisional
   const currentType = form.watch('type');
   const currentDebtAction = form.watch('debtAction');
   
-  // Format debts for select
   const debtOptions = unpaidDebts.map(debt => ({
     id: debt.id,
     name: debt.name,
@@ -81,7 +78,6 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
         relatedToDebtId: values.relatedToDebtId
       });
       
-      // Explicitly refresh data after adding
       await refreshData();
       
       form.reset();
@@ -133,7 +129,6 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
                           form.setValue('debtDueDate', undefined);
                           form.setValue('relatedToDebtId', undefined);
                         } else {
-                          // Default to borrow action when debt type is selected
                           form.setValue('debtAction', 'borrow');
                           setDebtDueDateEnabled(true);
                         }
@@ -250,14 +245,12 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
                       onValueChange={(value) => {
                         field.onChange(value);
                         
-                        // If switching to borrow, enable due date
                         if (value === 'borrow') {
                           setDebtDueDateEnabled(true);
                         } else {
                           setDebtDueDateEnabled(false);
                         }
                         
-                        // Reset related fields
                         form.setValue('debtDueDate', undefined);
                         form.setValue('relatedToDebtId', undefined);
                       }} 
@@ -322,7 +315,6 @@ const HabitForm = ({ onSuccessCallback }: HabitFormProps) => {
               />
             )}
             
-            {/* Debt Due Date (for borrow only) - ALWAYS visible when borrow is selected */}
             {currentType === 'debt' && currentDebtAction === 'borrow' && (
               <FormField
                 control={form.control}
