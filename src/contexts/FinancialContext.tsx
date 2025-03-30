@@ -3,8 +3,8 @@ import React, { createContext, useContext } from 'react';
 import { FinancialContextType } from '@/types/financial';
 import { useFinancialState } from '@/hooks/useFinancialState';
 
-// Re-export types for backward compatibility
-export { FinancialHabit, HabitType, SourceType, DebtAction, DebtStatus } from '@/types/financial';
+// Re-export types for backward compatibility - using proper 'export type' syntax
+export type { FinancialHabit, HabitType, SourceType, DebtAction, DebtStatus } from '@/types/financial';
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);
 
