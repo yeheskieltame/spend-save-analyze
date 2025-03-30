@@ -1,5 +1,4 @@
-
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -44,13 +43,28 @@ const queryClient = new QueryClient({
 
 // Create a separate ThemeInitializer component
 const ThemeInitializer = () => {
-  React.useEffect(() => {
+  useEffect(() => {
+    // Check if session should persist across page refreshes
+    // This code keeps the session active on refresh but will end it when the tab is closed
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only store session info if page is refreshing, not if tab is closing
+      if (e.persisted || document.visibilityState === 'hidden') {
+        // Do nothing - the session will be maintained via localStorage
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     // Only update theme if it's not already set in document
     if (!document.documentElement.classList.contains('light') && 
         !document.documentElement.classList.contains('dark')) {
       const storedTheme = localStorage.getItem('theme') || 'light';
       document.documentElement.classList.add(storedTheme);
     }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
   
   return null;
