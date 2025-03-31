@@ -1,7 +1,6 @@
-
 import React, { useState, useCallback, memo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Home, BarChart2, PiggyBank, Plus, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Home, BarChart2, PiggyBank, Plus, Settings, LogOut, Github, Linkedin, Instagram, Mail } from 'lucide-react';
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,6 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
   const handleSignOut = useCallback(async () => {
     try {
       await signOut();
-      // Note: We don't need to manually navigate here as the AuthContext's signOut function will handle that
     } catch (error) {
       console.error("Error in handleSignOut:", error);
       toast.error("Gagal logout");
@@ -142,7 +140,7 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
           </div>
         )}
 
-        <main className="flex-1">
+        <main className="flex-1 flex flex-col">
           {isMobile && (
             <div className="border-b">
               <div className="container flex h-14 items-center">
@@ -156,7 +154,32 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
               </div>
             </div>
           )}
-          <div className="container py-10">{children}</div>
+          <div className="container py-10 flex-1">{children}</div>
+          
+          <footer className="py-6 border-t bg-secondary/30">
+            <div className="container">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-center sm:text-left">
+                  <p className="text-sm font-medium">Dikembangkan oleh Yeheskiel Yunus Tame</p>
+                  <p className="text-xs text-muted-foreground">Dibuat Maret 2025</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Github">
+                    <Github className="h-5 w-5" />
+                  </a>
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="LinkedIn">
+                    <Linkedin className="h-5 w-5" />
+                  </a>
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Instagram">
+                    <Instagram className="h-5 w-5" />
+                  </a>
+                  <a href="#" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="Email">
+                    <Mail className="h-5 w-5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </footer>
         </main>
       </div>
     </div>
