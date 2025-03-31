@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     profile,
     setProfile,
     loading,
+    setLoading, // Make sure we destructure setLoading from useAuthActions
     fetchProfile,
     signIn,
     signUp,
