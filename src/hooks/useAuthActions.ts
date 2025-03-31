@@ -15,6 +15,7 @@ export function useAuthActions() {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
+      console.log(`Fetching profile for user ${userId}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -22,9 +23,11 @@ export function useAuthActions() {
         .single();
 
       if (error) {
-        throw error;
+        console.error('Error fetching profile:', error);
+        return;
       }
 
+      console.log('Profile fetched successfully:', data);
       setProfile(data as Profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -84,7 +87,7 @@ export function useAuthActions() {
       const redirectUrl = `${window.location.origin}/auth/callback`;
       console.log("Using redirect URL:", redirectUrl);
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
@@ -99,6 +102,10 @@ export function useAuthActions() {
         console.error("Google sign in error:", error);
         throw error;
       }
+      
+      console.log("OAuth sign in initiated, data:", data);
+      // No need to navigate - the OAuth flow will redirect the user
+      
     } catch (error: any) {
       console.error("Error signing in with Google:", error);
       toast.error(error.message || "Gagal login dengan Google, silakan coba lagi");
@@ -122,7 +129,7 @@ export function useAuthActions() {
       setProfile(null);
       
       toast.success("Logout berhasil!");
-      navigate('/');
+      navigate('/auth');
     } catch (error: any) {
       console.error("Error signing out:", error);
       toast.error(error.message || "Gagal logout, silakan coba lagi");

@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, enableRealtimeForTable } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Loading } from "@/components/ui/loading";
 
@@ -15,6 +15,15 @@ const AuthCallback = () => {
     try {
       console.log("Auth callback: Starting to handle redirect");
       
+      // Get the current URL hash and search parameters
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const searchParams = new URLSearchParams(window.location.search);
+      
+      // Log information to help diagnose the issue
+      console.log("URL hash:", window.location.hash);
+      console.log("URL search:", window.location.search);
+      
+      // Exchange the code for a session, this should trigger our auth state change listener
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -31,14 +40,21 @@ const AuthCallback = () => {
         
         // Enable realtime for financial_habits table
         const userId = data.session.user.id;
-        console.log("Enabling realtime for financial_habits");
+        console.log("Enabling realtime for financial_habits for user", userId);
         
         // We don't await this since it's not critical for navigation
-        enableRealtimeForTable("financial_habits").then(success => {
-          if (success) {
-            console.log("Successfully enabled realtime for financial_habits");
-          }
-        });
+        supabase.channel('public:financial_habits')
+          .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'financial_habits',
+            filter: `user_id=eq.${userId}`
+          }, (payload) => {
+            console.log('Financial habits change received:', payload);
+          })
+          .subscribe((status) => {
+            console.log('Financial habits realtime status:', status);
+          });
         
         toast.success("Login berhasil!");
         // Use replace instead of push to avoid adding to history stack
@@ -58,6 +74,10 @@ const AuthCallback = () => {
   }, [navigate]);
 
   useEffect(() => {
+    // Add more debugging console logs
+    console.log("AuthCallback component mounted");
+    console.log("Current URL:", window.location.href);
+    
     handleRedirect();
   }, [handleRedirect]);
 

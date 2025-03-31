@@ -35,15 +35,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log("Setting up auth state change listener");
+    
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.email);
+        
+        // Don't make these async - avoids potential deadlocks in Supabase client
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
+        // Use setTimeout to defer these operations
         if (currentSession?.user) {
-          await fetchProfile(currentSession.user.id);
+          setTimeout(() => {
+            fetchProfile(currentSession.user.id);
+          }, 0);
         } else {
           setProfile(null);
         }
@@ -53,6 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Get current session - this will respect the persistSession setting
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       console.log('Initial session check:', currentSession?.user?.email || 'No session');
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -61,7 +68,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         // If we're on a protected route and there's no session, redirect to auth
         const currentPath = window.location.pathname;
-        if (currentPath !== '/' && currentPath !== '/auth' && !currentPath.startsWith('/auth/')) {
+        if (currentPath !== '/' && 
+            currentPath !== '/auth' && 
+            !currentPath.startsWith('/auth/')) {
           window.location.href = '/auth';
         }
       }

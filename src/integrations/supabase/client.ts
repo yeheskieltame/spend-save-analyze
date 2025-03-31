@@ -35,7 +35,15 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Create a function to enable realtime subscription for a table
 export const enableRealtimeForTable = async (tableName: string) => {
   try {
-    // Modified to use a direct channel subscription approach instead of RPC
+    // Modified to use a direct channel subscription approach
+    const userId = supabase.auth.getUser().then(({ data }) => data.user?.id);
+    
+    if (!userId) {
+      console.log(`No user ID available for realtime subscription to ${tableName}`);
+      return false;
+    }
+    
+    // Create a channel with the table name
     const channel = supabase
       .channel(`realtime:${tableName}`)
       .on('postgres_changes', {
