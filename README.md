@@ -1,69 +1,128 @@
-# Welcome to your Lovable project
 
-## Project info
+# Financial Habit Tracker
 
-**URL**: https://lovable.dev/projects/1cdea9f5-ad3f-4d2c-8346-1e548e627164
+Aplikasi Financial Habit Tracker adalah solusi untuk mengelola keuangan pribadi dengan membangun kebiasaan finansial yang sehat, menganalisis pengeluaran, dan merencanakan tabungan secara efektif.
 
-## How can I edit this code?
+## Tech Stack
 
-There are several ways of editing your application.
+Aplikasi ini dibangun dengan teknologi modern:
 
-**Use Lovable**
+- **Frontend**:
+  - React - Library JavaScript untuk membangun antarmuka pengguna
+  - TypeScript - Superset JavaScript dengan dukungan tipe data statis
+  - Tailwind CSS - Framework CSS untuk desain responsif dan kustomisasi
+  - shadcn/ui - Komponen UI yang dapat disesuaikan dan dapat diakses
+  - Vite - Build tool yang cepat untuk pengembangan web modern
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1cdea9f5-ad3f-4d2c-8346-1e548e627164) and start prompting.
+- **State Management & Routing**:
+  - React Router - Navigasi berbasis komponen untuk aplikasi React
+  - Context API - Manajemen state aplikasi
+  - Tanstack Query - Fetching, caching, dan pembaruan data
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Backend & Autentikasi**:
+  - Supabase - Platform backend-as-a-service untuk autentikasi dan database
+  - PostgreSQL - Database relasional untuk penyimpanan data
 
-**Use your preferred IDE**
+- **Visualisasi Data**:
+  - Recharts - Library visualisasi data untuk React
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Fitur Utama
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Autentikasi Pengguna**
+   - Login dengan email/password
+   - Login dengan Google
+   - Keamanan berbasis token
 
-Follow these steps:
+2. **Dashboard Keuangan**
+   - Ringkasan keuangan secara visual
+   - Distribusi pengeluaran dan pendapatan
+   - Metrik keuangan kunci
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **Manajemen Kebiasaan Finansial**
+   - Tambah/edit/hapus kebiasaan keuangan
+   - Pelacakan kebiasaan seiring waktu
+   - Rekomendasi kebiasaan berdasarkan profil pengguna
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. **Analisis Keuangan**
+   - Analisis tren pengeluaran
+   - Perbandingan bulan ke bulan
+   - Pemecahan kategori pengeluaran
 
-# Step 3: Install the necessary dependencies.
-npm i
+5. **Tabungan dan Target**
+   - Pelacakan tabungan
+   - Pengaturan target finansial
+   - Visualisasi kemajuan target
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+6. **Personalisasi**
+   - Pengaturan preferensi pengguna
+   - Tema aplikasi yang dapat disesuaikan
 
-**Edit a file directly in GitHub**
+## Cara Penggunaan
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Untuk Pengguna
 
-**Use GitHub Codespaces**
+1. **Registrasi & Login**
+   - Buat akun baru atau login dengan akun Google
+   - Isi profil keuangan dasar untuk rekomendasi yang dipersonalisasi
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+2. **Dashboard**
+   - Lihat ringkasan keuangan dan kebiasaan aktif
+   - Pantau kemajuan target keuangan
 
-## What technologies are used for this project?
+3. **Tambah Kebiasaan**
+   - Buat kebiasaan keuangan baru
+   - Tentukan frekuensi dan kategori
 
-This project is built with .
+4. **Analisis**
+   - Jelajahi visualisasi dan analisis pengeluaran
+   - Filter berdasarkan periode waktu dan kategori
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+5. **Tabungan**
+   - Tambah catatan tabungan baru
+   - Pantau pertumbuhan tabungan dengan visualisasi
 
-## How can I deploy this project?
+### Untuk Pengembang
 
-Simply open [Lovable](https://lovable.dev/projects/1cdea9f5-ad3f-4d2c-8346-1e548e627164) and click on Share -> Publish.
+1. **Instalasi**
+   ```sh
+   # Kloning repositori
+   git clone <URL_REPOSITORI>
+   
+   # Masuk ke direktori proyek
+   cd financial-habit-tracker
+   
+   # Instal dependensi
+   npm install
+   
+   # Jalankan dalam mode pengembangan
+   npm run dev
+   ```
 
-## I want to use a custom domain - is that possible?
+2. **Struktur Proyek**
+   - `/src/components` - Komponen UI yang dapat digunakan kembali
+   - `/src/contexts` - Konteks React untuk manajemen state
+   - `/src/pages` - Halaman utama aplikasi
+   - `/src/hooks` - Custom React hooks
+   - `/src/services` - Logika bisnis dan interaksi API
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## Manfaat Penggunaan
+
+- **Kesadaran Finansial** - Memahami pola pengeluaran dan pendapatan
+- **Pembentukan Kebiasaan** - Membangun kebiasaan finansial yang sehat
+- **Perencanaan Keuangan** - Membantu mencapai tujuan finansial jangka panjang
+- **Analisis Visual** - Memvisualisasikan data keuangan untuk pemahaman yang lebih baik
+- **Keamanan Data** - Perlindungan data keuangan pribadi
+
+## Penerapan
+
+Financial Habit Tracker dapat digunakan untuk berbagai kebutuhan:
+
+- **Penggunaan Pribadi** - Kelola keuangan pribadi dan kebiasaan harian
+- **Edukasi Keuangan** - Alat untuk mengajarkan literasi keuangan
+- **Konsultasi Keuangan** - Bantu konsultan keuangan melacak kemajuan klien
+- **Perencanaan Anggaran** - Bantuan visual untuk perencanaan anggaran jangka pendek dan panjang
+
+## Dikembangkan Oleh
+
+Yeheskiel Yunus Tame (Maret 2025)
+
